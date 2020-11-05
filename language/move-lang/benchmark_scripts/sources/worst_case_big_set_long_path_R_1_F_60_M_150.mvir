@@ -1,0 +1,377 @@
+// R = 1
+// F = 60
+// M = 150
+module 0x42.Example {
+
+    struct S0 has drop { f0: u64, f1: u64, f2: u64, f3: u64, f4: u64, f5: u64, f6: u64, f7: u64, f8: u64, f9: u64, f10: u64, f11: u64, f12: u64, f13: u64, f14: u64, f15: u64, f16: u64, f17: u64, f18: u64, f19: u64, f20: u64, f21: u64, f22: u64, f23: u64, f24: u64, f25: u64, f26: u64, f27: u64, f28: u64, f29: u64, f30: u64, f31: u64, f32: u64, f33: u64, f34: u64, f35: u64, f36: u64, f37: u64, f38: u64, f39: u64, f40: u64, f41: u64, f42: u64, f43: u64, f44: u64, f45: u64, f46: u64, f47: u64, f48: u64, f49: u64, f50: u64, f51: u64, f52: u64, f53: u64, f54: u64, f55: u64, f56: u64, f57: u64, f58: u64, f59: u64 }
+
+    worst_case_big_set_long_path(l0: &mut Self.S0, cond: bool) {
+        let big_set: &mut u64;
+        let extra0: &mut u64;
+        let extra1: &mut u64;
+        let extra2: &mut u64;
+        let extra3: &mut u64;
+        let extra4: &mut u64;
+        let extra5: &mut u64;
+        let extra6: &mut u64;
+        let extra7: &mut u64;
+        let extra8: &mut u64;
+        let extra9: &mut u64;
+        let extra10: &mut u64;
+        let extra11: &mut u64;
+        let extra12: &mut u64;
+        let extra13: &mut u64;
+        let extra14: &mut u64;
+        let extra15: &mut u64;
+        let extra16: &mut u64;
+        let extra17: &mut u64;
+        let extra18: &mut u64;
+        let extra19: &mut u64;
+        let extra20: &mut u64;
+        let extra21: &mut u64;
+        let extra22: &mut u64;
+        let extra23: &mut u64;
+        let extra24: &mut u64;
+        let extra25: &mut u64;
+        let extra26: &mut u64;
+        let extra27: &mut u64;
+        let extra28: &mut u64;
+        let extra29: &mut u64;
+        let extra30: &mut u64;
+        let extra31: &mut u64;
+        let extra32: &mut u64;
+        let extra33: &mut u64;
+        let extra34: &mut u64;
+        let extra35: &mut u64;
+        let extra36: &mut u64;
+        let extra37: &mut u64;
+        let extra38: &mut u64;
+        let extra39: &mut u64;
+        let extra40: &mut u64;
+        let extra41: &mut u64;
+        let extra42: &mut u64;
+        let extra43: &mut u64;
+        let extra44: &mut u64;
+        let extra45: &mut u64;
+        let extra46: &mut u64;
+        let extra47: &mut u64;
+        let extra48: &mut u64;
+        let extra49: &mut u64;
+        let extra50: &mut u64;
+        let extra51: &mut u64;
+        let extra52: &mut u64;
+        let extra53: &mut u64;
+        let extra54: &mut u64;
+        let extra55: &mut u64;
+        let extra56: &mut u64;
+        let extra57: &mut u64;
+        let extra58: &mut u64;
+        let extra59: &mut u64;
+        let extra60: &mut u64;
+        let extra61: &mut u64;
+        let extra62: &mut u64;
+        let extra63: &mut u64;
+        let extra64: &mut u64;
+        let extra65: &mut u64;
+        let extra66: &mut u64;
+        let extra67: &mut u64;
+        let extra68: &mut u64;
+        let extra69: &mut u64;
+        let extra70: &mut u64;
+        let extra71: &mut u64;
+        let extra72: &mut u64;
+        let extra73: &mut u64;
+        let extra74: &mut u64;
+        let extra75: &mut u64;
+        let extra76: &mut u64;
+        let extra77: &mut u64;
+        let extra78: &mut u64;
+        let extra79: &mut u64;
+        let extra80: &mut u64;
+        let extra81: &mut u64;
+        let extra82: &mut u64;
+        let extra83: &mut u64;
+        let extra84: &mut u64;
+        let extra85: &mut u64;
+        let extra86: &mut u64;
+        let extra87: &mut u64;
+        let extra88: &mut u64;
+        let extra89: &mut u64;
+        let extra90: &mut u64;
+        let extra91: &mut u64;
+        let extra92: &mut u64;
+        let extra93: &mut u64;
+        let extra94: &mut u64;
+        let extra95: &mut u64;
+        let extra96: &mut u64;
+        let extra97: &mut u64;
+        let extra98: &mut u64;
+        let extra99: &mut u64;
+        let extra100: &mut u64;
+        let extra101: &mut u64;
+        let extra102: &mut u64;
+        let extra103: &mut u64;
+        let extra104: &mut u64;
+        let extra105: &mut u64;
+        let extra106: &mut u64;
+        let extra107: &mut u64;
+        let extra108: &mut u64;
+        let extra109: &mut u64;
+        let extra110: &mut u64;
+        let extra111: &mut u64;
+        let extra112: &mut u64;
+        let extra113: &mut u64;
+        let extra114: &mut u64;
+        let extra115: &mut u64;
+        let extra116: &mut u64;
+        let extra117: &mut u64;
+        let extra118: &mut u64;
+        let extra119: &mut u64;
+        let extra120: &mut u64;
+        let extra121: &mut u64;
+        let extra122: &mut u64;
+        let extra123: &mut u64;
+        let extra124: &mut u64;
+        let extra125: &mut u64;
+        let extra126: &mut u64;
+        let extra127: &mut u64;
+        let extra128: &mut u64;
+        let extra129: &mut u64;
+        let extra130: &mut u64;
+        let extra131: &mut u64;
+        let extra132: &mut u64;
+        let extra133: &mut u64;
+        let extra134: &mut u64;
+        let extra135: &mut u64;
+        let extra136: &mut u64;
+        let extra137: &mut u64;
+        let extra138: &mut u64;
+        let extra139: &mut u64;
+        let extra140: &mut u64;
+        let extra141: &mut u64;
+        let extra142: &mut u64;
+        let extra143: &mut u64;
+        let extra144: &mut u64;
+        let extra145: &mut u64;
+        let extra146: &mut u64;
+        let extra147: &mut u64;
+        let extra148: &mut u64;
+        let extra149: &mut u64;
+
+        big_set = &mut copy(l0).S0::f0;
+        if (copy(cond)) { big_set = &mut copy(l0).S0::f1; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f2; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f3; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f4; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f5; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f6; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f7; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f8; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f9; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f10; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f11; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f12; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f13; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f14; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f15; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f16; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f17; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f18; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f19; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f20; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f21; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f22; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f23; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f24; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f25; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f26; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f27; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f28; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f29; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f30; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f31; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f32; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f33; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f34; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f35; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f36; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f37; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f38; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f39; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f40; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f41; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f42; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f43; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f44; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f45; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f46; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f47; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f48; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f49; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f50; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f51; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f52; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f53; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f54; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f55; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f56; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f57; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f58; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f59; }
+        }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+
+        extra0 = copy(big_set);
+        extra1 = copy(big_set);
+        extra2 = copy(big_set);
+        extra3 = copy(big_set);
+        extra4 = copy(big_set);
+        extra5 = copy(big_set);
+        extra6 = copy(big_set);
+        extra7 = copy(big_set);
+        extra8 = copy(big_set);
+        extra9 = copy(big_set);
+        extra10 = copy(big_set);
+        extra11 = copy(big_set);
+        extra12 = copy(big_set);
+        extra13 = copy(big_set);
+        extra14 = copy(big_set);
+        extra15 = copy(big_set);
+        extra16 = copy(big_set);
+        extra17 = copy(big_set);
+        extra18 = copy(big_set);
+        extra19 = copy(big_set);
+        extra20 = copy(big_set);
+        extra21 = copy(big_set);
+        extra22 = copy(big_set);
+        extra23 = copy(big_set);
+        extra24 = copy(big_set);
+        extra25 = copy(big_set);
+        extra26 = copy(big_set);
+        extra27 = copy(big_set);
+        extra28 = copy(big_set);
+        extra29 = copy(big_set);
+        extra30 = copy(big_set);
+        extra31 = copy(big_set);
+        extra32 = copy(big_set);
+        extra33 = copy(big_set);
+        extra34 = copy(big_set);
+        extra35 = copy(big_set);
+        extra36 = copy(big_set);
+        extra37 = copy(big_set);
+        extra38 = copy(big_set);
+        extra39 = copy(big_set);
+        extra40 = copy(big_set);
+        extra41 = copy(big_set);
+        extra42 = copy(big_set);
+        extra43 = copy(big_set);
+        extra44 = copy(big_set);
+        extra45 = copy(big_set);
+        extra46 = copy(big_set);
+        extra47 = copy(big_set);
+        extra48 = copy(big_set);
+        extra49 = copy(big_set);
+        extra50 = copy(big_set);
+        extra51 = copy(big_set);
+        extra52 = copy(big_set);
+        extra53 = copy(big_set);
+        extra54 = copy(big_set);
+        extra55 = copy(big_set);
+        extra56 = copy(big_set);
+        extra57 = copy(big_set);
+        extra58 = copy(big_set);
+        extra59 = copy(big_set);
+        extra60 = copy(big_set);
+        extra61 = copy(big_set);
+        extra62 = copy(big_set);
+        extra63 = copy(big_set);
+        extra64 = copy(big_set);
+        extra65 = copy(big_set);
+        extra66 = copy(big_set);
+        extra67 = copy(big_set);
+        extra68 = copy(big_set);
+        extra69 = copy(big_set);
+        extra70 = copy(big_set);
+        extra71 = copy(big_set);
+        extra72 = copy(big_set);
+        extra73 = copy(big_set);
+        extra74 = copy(big_set);
+        extra75 = copy(big_set);
+        extra76 = copy(big_set);
+        extra77 = copy(big_set);
+        extra78 = copy(big_set);
+        extra79 = copy(big_set);
+        extra80 = copy(big_set);
+        extra81 = copy(big_set);
+        extra82 = copy(big_set);
+        extra83 = copy(big_set);
+        extra84 = copy(big_set);
+        extra85 = copy(big_set);
+        extra86 = copy(big_set);
+        extra87 = copy(big_set);
+        extra88 = copy(big_set);
+        extra89 = copy(big_set);
+        extra90 = copy(big_set);
+        extra91 = copy(big_set);
+        extra92 = copy(big_set);
+        extra93 = copy(big_set);
+        extra94 = copy(big_set);
+        extra95 = copy(big_set);
+        extra96 = copy(big_set);
+        extra97 = copy(big_set);
+        extra98 = copy(big_set);
+        extra99 = copy(big_set);
+        extra100 = copy(big_set);
+        extra101 = copy(big_set);
+        extra102 = copy(big_set);
+        extra103 = copy(big_set);
+        extra104 = copy(big_set);
+        extra105 = copy(big_set);
+        extra106 = copy(big_set);
+        extra107 = copy(big_set);
+        extra108 = copy(big_set);
+        extra109 = copy(big_set);
+        extra110 = copy(big_set);
+        extra111 = copy(big_set);
+        extra112 = copy(big_set);
+        extra113 = copy(big_set);
+        extra114 = copy(big_set);
+        extra115 = copy(big_set);
+        extra116 = copy(big_set);
+        extra117 = copy(big_set);
+        extra118 = copy(big_set);
+        extra119 = copy(big_set);
+        extra120 = copy(big_set);
+        extra121 = copy(big_set);
+        extra122 = copy(big_set);
+        extra123 = copy(big_set);
+        extra124 = copy(big_set);
+        extra125 = copy(big_set);
+        extra126 = copy(big_set);
+        extra127 = copy(big_set);
+        extra128 = copy(big_set);
+        extra129 = copy(big_set);
+        extra130 = copy(big_set);
+        extra131 = copy(big_set);
+        extra132 = copy(big_set);
+        extra133 = copy(big_set);
+        extra134 = copy(big_set);
+        extra135 = copy(big_set);
+        extra136 = copy(big_set);
+        extra137 = copy(big_set);
+        extra138 = copy(big_set);
+        extra139 = copy(big_set);
+        extra140 = copy(big_set);
+        extra141 = copy(big_set);
+        extra142 = copy(big_set);
+        extra143 = copy(big_set);
+        extra144 = copy(big_set);
+        extra145 = copy(big_set);
+        extra146 = copy(big_set);
+        extra147 = copy(big_set);
+        extra148 = copy(big_set);
+        extra149 = copy(big_set);
+        *move(big_set) = 0;
+        return;
+    }
+
+}

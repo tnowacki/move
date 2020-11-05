@@ -1,0 +1,381 @@
+Model Name:	MacBook Pro
+Model Identifier:	MacBookPro16,1
+Processor Name:	8-Core Intel Core i9
+Processor Speed:	2.4 GHz
+Number of Processors:	1
+Total Number of Cores:	8
+L2 Cache (per Core):	256 KB
+L3 Cache:	16 MB
+Hyper-Threading Technology:	Enabled
+Memory:	64 GB
+System Firmware Version:	1554.140.20.0.0 (iBridge: 18.16.14759.0.1,0)
+
+benchmark: starcoin
+
+##################################################################
+/Users/tmn/move_benchmarks/starcoin/vm/stdlib/modules
+
+Total milliseconds to verify compiled units after 1000 iterations: 9928
+Average milliseconds to verify compiled units after 1000 iterations: 9.928
+Total reference operations (not including move/copy/pop): 733
+  Total borrow local: 246
+    Imm borrow local: 206
+    Mut borrow local: 40
+  Total borrow field: 370
+    Imm borrow field: 253
+    Mut borrow field: 117
+  Total borrow global: 100
+    Imm borrow global: 41
+    Mut borrow global: 59
+  Freeze: 17
+Fraction of instructions that are reference instructions: 733/7623 (9.62%)
+Exists: 28
+Move from: 14
+Move from: 41
+
+Total reference related annotations: 399
+  Total reference function type annotations: 225
+    Reference parameters: 213
+    Reference return values: 12
+  Acquire annotations: 174
+
+Functions with global storage operations: 140/431 (32.48%)
+Functions with reference operations: 247/431 (57.31%)
+Functions with reference signatures: 202/431 (46.87%)
+Functions with reference operations or reference signatures: 323/431 (74.94%)
+Functions with global storage operations: 131/431 (30.39%)
+Functions with acquires: 131/431 (30.39%)
+Modules with acquires: 24/60 (40.00%)
+Total number of structs: 87
+Total number of fields: 221
+Max number of structs in a single module: 8
+Max number of fields in a single struct: 12
+
+benchmark: mai
+
+##################################################################
+/Users/tmn/move_benchmarks/mai/src/modules
+
+Total milliseconds to verify compiled units after 1000 iterations: 2512
+Average milliseconds to verify compiled units after 1000 iterations: 2.512
+Total reference operations (not including move/copy/pop): 208
+  Total borrow local: 96
+    Imm borrow local: 63
+    Mut borrow local: 33
+  Total borrow field: 92
+    Imm borrow field: 77
+    Mut borrow field: 15
+  Total borrow global: 18
+    Imm borrow global: 8
+    Mut borrow global: 10
+  Freeze: 2
+Fraction of instructions that are reference instructions: 208/2537 (8.20%)
+Exists: 3
+Move from: 0
+Move from: 7
+
+Total reference related annotations: 37
+  Total reference function type annotations: 20
+    Reference parameters: 20
+    Reference return values: 0
+  Acquire annotations: 17
+
+Functions with global storage operations: 25/116 (21.55%)
+Functions with reference operations: 51/116 (43.97%)
+Functions with reference signatures: 20/116 (17.24%)
+Functions with reference operations or reference signatures: 58/116 (50.00%)
+Functions with global storage operations: 17/116 (14.66%)
+Functions with acquires: 17/116 (14.66%)
+Modules with acquires: 5/16 (31.25%)
+Total number of structs: 14
+Total number of fields: 27
+Max number of structs in a single module: 4
+Max number of fields in a single struct: 6
+
+benchmark: blackhole
+
+##################################################################
+/Users/tmn/move_benchmarks/blackhole/protocol/src/modules
+
+Total milliseconds to verify compiled units after 1000 iterations: 786
+Average milliseconds to verify compiled units after 1000 iterations: 0.786
+Total reference operations (not including move/copy/pop): 32
+  Total borrow local: 4
+    Imm borrow local: 0
+    Mut borrow local: 4
+  Total borrow field: 20
+    Imm borrow field: 13
+    Mut borrow field: 7
+  Total borrow global: 8
+    Imm borrow global: 5
+    Mut borrow global: 3
+  Freeze: 0
+Fraction of instructions that are reference instructions: 32/694 (4.61%)
+Exists: 4
+Move from: 1
+Move from: 5
+
+Total reference related annotations: 25
+  Total reference function type annotations: 14
+    Reference parameters: 14
+    Reference return values: 0
+  Acquire annotations: 11
+
+Functions with global storage operations: 13/29 (44.83%)
+Functions with reference operations: 13/29 (44.83%)
+Functions with reference signatures: 12/29 (41.38%)
+Functions with reference operations or reference signatures: 19/29 (65.52%)
+Functions with global storage operations: 10/29 (34.48%)
+Functions with acquires: 10/29 (34.48%)
+Modules with acquires: 3/7 (42.86%)
+Total number of structs: 8
+Total number of fields: 12
+Max number of structs in a single module: 4
+Max number of fields in a single struct: 5
+
+benchmark: alma
+
+##################################################################
+/Users/tmn/move_benchmarks/alma-contract/src/modules
+
+Total milliseconds to verify compiled units after 1000 iterations: 544
+Average milliseconds to verify compiled units after 1000 iterations: 0.544
+Total reference operations (not including move/copy/pop): 32
+  Total borrow local: 24
+    Imm borrow local: 13
+    Mut borrow local: 11
+  Total borrow field: 6
+    Imm borrow field: 4
+    Mut borrow field: 2
+  Total borrow global: 0
+    Imm borrow global: 0
+    Mut borrow global: 0
+  Freeze: 2
+Fraction of instructions that are reference instructions: 32/427 (7.49%)
+Exists: 0
+Move from: 0
+Move from: 0
+
+Total reference related annotations: 19
+  Total reference function type annotations: 19
+    Reference parameters: 19
+    Reference return values: 0
+  Acquire annotations: 0
+
+Functions with global storage operations: 0/15 (0.00%)
+Functions with reference operations: 11/15 (73.33%)
+Functions with reference signatures: 11/15 (73.33%)
+Functions with reference operations or reference signatures: 15/15 (100.00%)
+Functions with global storage operations: 0/15 (0.00%)
+Functions with acquires: 0/15 (0.00%)
+Modules with acquires: 0/4 (0.00%)
+Total number of structs: 2
+Total number of fields: 5
+Max number of structs in a single module: 1
+Max number of fields in a single struct: 4
+
+benchmark: starswap
+
+##################################################################
+/Users/tmn/move_benchmarks/starswap-core/src/modules
+
+Total milliseconds to verify compiled units after 1000 iterations: 1141
+Average milliseconds to verify compiled units after 1000 iterations: 1.141
+Total reference operations (not including move/copy/pop): 48
+  Total borrow local: 17
+    Imm borrow local: 17
+    Mut borrow local: 0
+  Total borrow field: 23
+    Imm borrow field: 11
+    Mut borrow field: 12
+  Total borrow global: 8
+    Imm borrow global: 3
+    Mut borrow global: 5
+  Freeze: 0
+Fraction of instructions that are reference instructions: 48/1079 (4.45%)
+Exists: 0
+Move from: 0
+Move from: 2
+
+Total reference related annotations: 22
+  Total reference function type annotations: 13
+    Reference parameters: 13
+    Reference return values: 0
+  Acquire annotations: 9
+
+Functions with global storage operations: 9/36 (25.00%)
+Functions with reference operations: 15/36 (41.67%)
+Functions with reference signatures: 13/36 (36.11%)
+Functions with reference operations or reference signatures: 25/36 (69.44%)
+Functions with global storage operations: 7/36 (19.44%)
+Functions with acquires: 7/36 (19.44%)
+Modules with acquires: 1/3 (33.33%)
+Total number of structs: 3
+Total number of fields: 12
+Max number of structs in a single module: 3
+Max number of fields in a single struct: 7
+
+benchmark: meteor
+
+##################################################################
+/Users/tmn/move_benchmarks/meteor-contract/src/modules
+
+Total milliseconds to verify compiled units after 1000 iterations: 416
+Average milliseconds to verify compiled units after 1000 iterations: 0.416
+Total reference operations (not including move/copy/pop): 18
+  Total borrow local: 9
+    Imm borrow local: 5
+    Mut borrow local: 4
+  Total borrow field: 7
+    Imm borrow field: 6
+    Mut borrow field: 1
+  Total borrow global: 1
+    Imm borrow global: 1
+    Mut borrow global: 0
+  Freeze: 1
+Fraction of instructions that are reference instructions: 18/260 (6.92%)
+Exists: 0
+Move from: 0
+Move from: 2
+
+Total reference related annotations: 11
+  Total reference function type annotations: 10
+    Reference parameters: 10
+    Reference return values: 0
+  Acquire annotations: 1
+
+Functions with global storage operations: 2/9 (22.22%)
+Functions with reference operations: 6/9 (66.67%)
+Functions with reference signatures: 8/9 (88.89%)
+Functions with reference operations or reference signatures: 9/9 (100.00%)
+Functions with global storage operations: 1/9 (11.11%)
+Functions with acquires: 1/9 (11.11%)
+Modules with acquires: 1/2 (50.00%)
+Total number of structs: 4
+Total number of fields: 7
+Max number of structs in a single module: 3
+Max number of fields in a single struct: 4
+
+benchmark: taohe
+
+##################################################################
+/Users/tmn/move_benchmarks/taohe/modules
+
+Total milliseconds to verify compiled units after 1000 iterations: 270
+Average milliseconds to verify compiled units after 1000 iterations: 0.27
+Total reference operations (not including move/copy/pop): 5
+  Total borrow local: 0
+    Imm borrow local: 0
+    Mut borrow local: 0
+  Total borrow field: 3
+    Imm borrow field: 2
+    Mut borrow field: 1
+  Total borrow global: 2
+    Imm borrow global: 1
+    Mut borrow global: 1
+  Freeze: 0
+Fraction of instructions that are reference instructions: 5/214 (2.34%)
+Exists: 2
+Move from: 1
+Move from: 2
+
+Total reference related annotations: 13
+  Total reference function type annotations: 9
+    Reference parameters: 9
+    Reference return values: 0
+  Acquire annotations: 4
+
+Functions with global storage operations: 7/27 (25.93%)
+Functions with reference operations: 2/27 (7.41%)
+Functions with reference signatures: 9/27 (33.33%)
+Functions with reference operations or reference signatures: 10/27 (37.04%)
+Functions with global storage operations: 4/27 (14.81%)
+Functions with acquires: 4/27 (14.81%)
+Modules with acquires: 2/9 (22.22%)
+Total number of structs: 7
+Total number of fields: 2
+Max number of structs in a single module: 1
+Max number of fields in a single struct: 2
+
+benchmark: stdlib
+
+##################################################################
+/Users/tmn/diem/language/move-stdlib/sources
+
+Total milliseconds to verify compiled units after 1000 iterations: 1387
+Average milliseconds to verify compiled units after 1000 iterations: 1.387
+Total reference operations (not including move/copy/pop): 98
+  Total borrow local: 23
+    Imm borrow local: 16
+    Mut borrow local: 7
+  Total borrow field: 57
+    Imm borrow field: 46
+    Mut borrow field: 11
+  Total borrow global: 6
+    Imm borrow global: 3
+    Mut borrow global: 3
+  Freeze: 12
+Fraction of instructions that are reference instructions: 98/1045 (9.38%)
+Exists: 8
+Move from: 1
+Move from: 4
+
+Total reference related annotations: 81
+  Total reference function type annotations: 70
+    Reference parameters: 63
+    Reference return values: 7
+  Acquire annotations: 11
+
+Functions with global storage operations: 7/85 (8.24%)
+Functions with reference operations: 46/85 (54.12%)
+Functions with reference signatures: 53/85 (62.35%)
+Functions with reference operations or reference signatures: 63/85 (74.12%)
+Functions with global storage operations: 7/85 (8.24%)
+Functions with acquires: 7/85 (8.24%)
+Modules with acquires: 2/11 (18.18%)
+Total number of structs: 13
+Total number of fields: 18
+Max number of structs in a single module: 4
+Max number of fields in a single struct: 2
+
+benchmark: diem
+
+##################################################################
+/Users/tmn/diem/diem-move/diem-framework/core/sources
+/Users/tmn/diem/language/move-stdlib/sources
+
+Total milliseconds to verify compiled units after 1000 iterations: 9547
+Average milliseconds to verify compiled units after 1000 iterations: 9.547
+Total reference operations (not including move/copy/pop): 775
+  Total borrow local: 253
+    Imm borrow local: 225
+    Mut borrow local: 28
+  Total borrow field: 367
+    Imm borrow field: 237
+    Mut borrow field: 130
+  Total borrow global: 128
+    Imm borrow global: 62
+    Mut borrow global: 66
+  Freeze: 27
+Fraction of instructions that are reference instructions: 775/8098 (9.57%)
+Exists: 133
+Move from: 6
+Move from: 46
+
+Total reference related annotations: 521
+  Total reference function type annotations: 297
+    Reference parameters: 285
+    Reference return values: 12
+  Acquire annotations: 224
+
+Functions with global storage operations: 183/436 (41.97%)
+Functions with reference operations: 266/436 (61.01%)
+Functions with reference signatures: 246/436 (56.42%)
+Functions with reference operations or reference signatures: 367/436 (84.17%)
+Functions with global storage operations: 172/436 (39.45%)
+Functions with acquires: 172/436 (39.45%)
+Modules with acquires: 26/51 (50.98%)
+Total number of structs: 99
+Total number of fields: 194
+Max number of structs in a single module: 12
+Max number of fields in a single struct: 13

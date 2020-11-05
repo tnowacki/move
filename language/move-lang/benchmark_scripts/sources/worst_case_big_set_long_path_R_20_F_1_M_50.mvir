@@ -1,0 +1,193 @@
+// R = 20
+// F = 1
+// M = 50
+module 0x42.Example {
+
+    struct S0 has drop { f0: u64 }
+    struct S1 has drop { f0: Self.S0 }
+    struct S2 has drop { f0: Self.S1 }
+    struct S3 has drop { f0: Self.S2 }
+    struct S4 has drop { f0: Self.S3 }
+    struct S5 has drop { f0: Self.S4 }
+    struct S6 has drop { f0: Self.S5 }
+    struct S7 has drop { f0: Self.S6 }
+    struct S8 has drop { f0: Self.S7 }
+    struct S9 has drop { f0: Self.S8 }
+    struct S10 has drop { f0: Self.S9 }
+    struct S11 has drop { f0: Self.S10 }
+    struct S12 has drop { f0: Self.S11 }
+    struct S13 has drop { f0: Self.S12 }
+    struct S14 has drop { f0: Self.S13 }
+    struct S15 has drop { f0: Self.S14 }
+    struct S16 has drop { f0: Self.S15 }
+    struct S17 has drop { f0: Self.S16 }
+    struct S18 has drop { f0: Self.S17 }
+    struct S19 has drop { f0: Self.S18 }
+
+    worst_case_big_set_long_path(l19: &mut Self.S19, cond: bool) {
+        let l18: &mut Self.S18;
+        let l17: &mut Self.S17;
+        let l16: &mut Self.S16;
+        let l15: &mut Self.S15;
+        let l14: &mut Self.S14;
+        let l13: &mut Self.S13;
+        let l12: &mut Self.S12;
+        let l11: &mut Self.S11;
+        let l10: &mut Self.S10;
+        let l9: &mut Self.S9;
+        let l8: &mut Self.S8;
+        let l7: &mut Self.S7;
+        let l6: &mut Self.S6;
+        let l5: &mut Self.S5;
+        let l4: &mut Self.S4;
+        let l3: &mut Self.S3;
+        let l2: &mut Self.S2;
+        let l1: &mut Self.S1;
+        let l0: &mut Self.S0;
+        let big_set: &mut u64;
+        let extra0: &mut u64;
+        let extra1: &mut u64;
+        let extra2: &mut u64;
+        let extra3: &mut u64;
+        let extra4: &mut u64;
+        let extra5: &mut u64;
+        let extra6: &mut u64;
+        let extra7: &mut u64;
+        let extra8: &mut u64;
+        let extra9: &mut u64;
+        let extra10: &mut u64;
+        let extra11: &mut u64;
+        let extra12: &mut u64;
+        let extra13: &mut u64;
+        let extra14: &mut u64;
+        let extra15: &mut u64;
+        let extra16: &mut u64;
+        let extra17: &mut u64;
+        let extra18: &mut u64;
+        let extra19: &mut u64;
+        let extra20: &mut u64;
+        let extra21: &mut u64;
+        let extra22: &mut u64;
+        let extra23: &mut u64;
+        let extra24: &mut u64;
+        let extra25: &mut u64;
+        let extra26: &mut u64;
+        let extra27: &mut u64;
+        let extra28: &mut u64;
+        let extra29: &mut u64;
+        let extra30: &mut u64;
+        let extra31: &mut u64;
+        let extra32: &mut u64;
+        let extra33: &mut u64;
+        let extra34: &mut u64;
+        let extra35: &mut u64;
+        let extra36: &mut u64;
+        let extra37: &mut u64;
+        let extra38: &mut u64;
+        let extra39: &mut u64;
+        let extra40: &mut u64;
+        let extra41: &mut u64;
+        let extra42: &mut u64;
+        let extra43: &mut u64;
+        let extra44: &mut u64;
+        let extra45: &mut u64;
+        let extra46: &mut u64;
+        let extra47: &mut u64;
+        let extra48: &mut u64;
+        let extra49: &mut u64;
+
+        l18 = &mut copy(l19).S19::f0;
+
+        l17 = &mut copy(l18).S18::f0;
+
+        l16 = &mut copy(l17).S17::f0;
+
+        l15 = &mut copy(l16).S16::f0;
+
+        l14 = &mut copy(l15).S15::f0;
+
+        l13 = &mut copy(l14).S14::f0;
+
+        l12 = &mut copy(l13).S13::f0;
+
+        l11 = &mut copy(l12).S12::f0;
+
+        l10 = &mut copy(l11).S11::f0;
+
+        l9 = &mut copy(l10).S10::f0;
+
+        l8 = &mut copy(l9).S9::f0;
+
+        l7 = &mut copy(l8).S8::f0;
+
+        l6 = &mut copy(l7).S7::f0;
+
+        l5 = &mut copy(l6).S6::f0;
+
+        l4 = &mut copy(l5).S5::f0;
+
+        l3 = &mut copy(l4).S4::f0;
+
+        l2 = &mut copy(l3).S3::f0;
+
+        l1 = &mut copy(l2).S2::f0;
+
+        l0 = &mut copy(l1).S1::f0;
+
+        big_set = &mut copy(l0).S0::f0;
+
+        extra0 = copy(big_set);
+        extra1 = copy(big_set);
+        extra2 = copy(big_set);
+        extra3 = copy(big_set);
+        extra4 = copy(big_set);
+        extra5 = copy(big_set);
+        extra6 = copy(big_set);
+        extra7 = copy(big_set);
+        extra8 = copy(big_set);
+        extra9 = copy(big_set);
+        extra10 = copy(big_set);
+        extra11 = copy(big_set);
+        extra12 = copy(big_set);
+        extra13 = copy(big_set);
+        extra14 = copy(big_set);
+        extra15 = copy(big_set);
+        extra16 = copy(big_set);
+        extra17 = copy(big_set);
+        extra18 = copy(big_set);
+        extra19 = copy(big_set);
+        extra20 = copy(big_set);
+        extra21 = copy(big_set);
+        extra22 = copy(big_set);
+        extra23 = copy(big_set);
+        extra24 = copy(big_set);
+        extra25 = copy(big_set);
+        extra26 = copy(big_set);
+        extra27 = copy(big_set);
+        extra28 = copy(big_set);
+        extra29 = copy(big_set);
+        extra30 = copy(big_set);
+        extra31 = copy(big_set);
+        extra32 = copy(big_set);
+        extra33 = copy(big_set);
+        extra34 = copy(big_set);
+        extra35 = copy(big_set);
+        extra36 = copy(big_set);
+        extra37 = copy(big_set);
+        extra38 = copy(big_set);
+        extra39 = copy(big_set);
+        extra40 = copy(big_set);
+        extra41 = copy(big_set);
+        extra42 = copy(big_set);
+        extra43 = copy(big_set);
+        extra44 = copy(big_set);
+        extra45 = copy(big_set);
+        extra46 = copy(big_set);
+        extra47 = copy(big_set);
+        extra48 = copy(big_set);
+        extra49 = copy(big_set);
+        *move(big_set) = 0;
+        return;
+    }
+
+}

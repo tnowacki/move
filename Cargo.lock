@@ -5138,6 +5138,7 @@ dependencies = [
  "bytecode-source-map",
  "bytecode-verifier",
  "codespan-reporting",
+ "compiler",
  "datatest-stable",
  "diem-workspace-hack",
  "difference",

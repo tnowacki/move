@@ -1,0 +1,353 @@
+// R = 80
+// F = 1
+// M = 10
+module 0x42.Example {
+
+    struct S0 has drop { f0: u64 }
+    struct S1 has drop { f0: Self.S0 }
+    struct S2 has drop { f0: Self.S1 }
+    struct S3 has drop { f0: Self.S2 }
+    struct S4 has drop { f0: Self.S3 }
+    struct S5 has drop { f0: Self.S4 }
+    struct S6 has drop { f0: Self.S5 }
+    struct S7 has drop { f0: Self.S6 }
+    struct S8 has drop { f0: Self.S7 }
+    struct S9 has drop { f0: Self.S8 }
+    struct S10 has drop { f0: Self.S9 }
+    struct S11 has drop { f0: Self.S10 }
+    struct S12 has drop { f0: Self.S11 }
+    struct S13 has drop { f0: Self.S12 }
+    struct S14 has drop { f0: Self.S13 }
+    struct S15 has drop { f0: Self.S14 }
+    struct S16 has drop { f0: Self.S15 }
+    struct S17 has drop { f0: Self.S16 }
+    struct S18 has drop { f0: Self.S17 }
+    struct S19 has drop { f0: Self.S18 }
+    struct S20 has drop { f0: Self.S19 }
+    struct S21 has drop { f0: Self.S20 }
+    struct S22 has drop { f0: Self.S21 }
+    struct S23 has drop { f0: Self.S22 }
+    struct S24 has drop { f0: Self.S23 }
+    struct S25 has drop { f0: Self.S24 }
+    struct S26 has drop { f0: Self.S25 }
+    struct S27 has drop { f0: Self.S26 }
+    struct S28 has drop { f0: Self.S27 }
+    struct S29 has drop { f0: Self.S28 }
+    struct S30 has drop { f0: Self.S29 }
+    struct S31 has drop { f0: Self.S30 }
+    struct S32 has drop { f0: Self.S31 }
+    struct S33 has drop { f0: Self.S32 }
+    struct S34 has drop { f0: Self.S33 }
+    struct S35 has drop { f0: Self.S34 }
+    struct S36 has drop { f0: Self.S35 }
+    struct S37 has drop { f0: Self.S36 }
+    struct S38 has drop { f0: Self.S37 }
+    struct S39 has drop { f0: Self.S38 }
+    struct S40 has drop { f0: Self.S39 }
+    struct S41 has drop { f0: Self.S40 }
+    struct S42 has drop { f0: Self.S41 }
+    struct S43 has drop { f0: Self.S42 }
+    struct S44 has drop { f0: Self.S43 }
+    struct S45 has drop { f0: Self.S44 }
+    struct S46 has drop { f0: Self.S45 }
+    struct S47 has drop { f0: Self.S46 }
+    struct S48 has drop { f0: Self.S47 }
+    struct S49 has drop { f0: Self.S48 }
+    struct S50 has drop { f0: Self.S49 }
+    struct S51 has drop { f0: Self.S50 }
+    struct S52 has drop { f0: Self.S51 }
+    struct S53 has drop { f0: Self.S52 }
+    struct S54 has drop { f0: Self.S53 }
+    struct S55 has drop { f0: Self.S54 }
+    struct S56 has drop { f0: Self.S55 }
+    struct S57 has drop { f0: Self.S56 }
+    struct S58 has drop { f0: Self.S57 }
+    struct S59 has drop { f0: Self.S58 }
+    struct S60 has drop { f0: Self.S59 }
+    struct S61 has drop { f0: Self.S60 }
+    struct S62 has drop { f0: Self.S61 }
+    struct S63 has drop { f0: Self.S62 }
+    struct S64 has drop { f0: Self.S63 }
+    struct S65 has drop { f0: Self.S64 }
+    struct S66 has drop { f0: Self.S65 }
+    struct S67 has drop { f0: Self.S66 }
+    struct S68 has drop { f0: Self.S67 }
+    struct S69 has drop { f0: Self.S68 }
+    struct S70 has drop { f0: Self.S69 }
+    struct S71 has drop { f0: Self.S70 }
+    struct S72 has drop { f0: Self.S71 }
+    struct S73 has drop { f0: Self.S72 }
+    struct S74 has drop { f0: Self.S73 }
+    struct S75 has drop { f0: Self.S74 }
+    struct S76 has drop { f0: Self.S75 }
+    struct S77 has drop { f0: Self.S76 }
+    struct S78 has drop { f0: Self.S77 }
+    struct S79 has drop { f0: Self.S78 }
+
+    worst_case_big_set_long_path(l79: &mut Self.S79, cond: bool) {
+        let l78: &mut Self.S78;
+        let l77: &mut Self.S77;
+        let l76: &mut Self.S76;
+        let l75: &mut Self.S75;
+        let l74: &mut Self.S74;
+        let l73: &mut Self.S73;
+        let l72: &mut Self.S72;
+        let l71: &mut Self.S71;
+        let l70: &mut Self.S70;
+        let l69: &mut Self.S69;
+        let l68: &mut Self.S68;
+        let l67: &mut Self.S67;
+        let l66: &mut Self.S66;
+        let l65: &mut Self.S65;
+        let l64: &mut Self.S64;
+        let l63: &mut Self.S63;
+        let l62: &mut Self.S62;
+        let l61: &mut Self.S61;
+        let l60: &mut Self.S60;
+        let l59: &mut Self.S59;
+        let l58: &mut Self.S58;
+        let l57: &mut Self.S57;
+        let l56: &mut Self.S56;
+        let l55: &mut Self.S55;
+        let l54: &mut Self.S54;
+        let l53: &mut Self.S53;
+        let l52: &mut Self.S52;
+        let l51: &mut Self.S51;
+        let l50: &mut Self.S50;
+        let l49: &mut Self.S49;
+        let l48: &mut Self.S48;
+        let l47: &mut Self.S47;
+        let l46: &mut Self.S46;
+        let l45: &mut Self.S45;
+        let l44: &mut Self.S44;
+        let l43: &mut Self.S43;
+        let l42: &mut Self.S42;
+        let l41: &mut Self.S41;
+        let l40: &mut Self.S40;
+        let l39: &mut Self.S39;
+        let l38: &mut Self.S38;
+        let l37: &mut Self.S37;
+        let l36: &mut Self.S36;
+        let l35: &mut Self.S35;
+        let l34: &mut Self.S34;
+        let l33: &mut Self.S33;
+        let l32: &mut Self.S32;
+        let l31: &mut Self.S31;
+        let l30: &mut Self.S30;
+        let l29: &mut Self.S29;
+        let l28: &mut Self.S28;
+        let l27: &mut Self.S27;
+        let l26: &mut Self.S26;
+        let l25: &mut Self.S25;
+        let l24: &mut Self.S24;
+        let l23: &mut Self.S23;
+        let l22: &mut Self.S22;
+        let l21: &mut Self.S21;
+        let l20: &mut Self.S20;
+        let l19: &mut Self.S19;
+        let l18: &mut Self.S18;
+        let l17: &mut Self.S17;
+        let l16: &mut Self.S16;
+        let l15: &mut Self.S15;
+        let l14: &mut Self.S14;
+        let l13: &mut Self.S13;
+        let l12: &mut Self.S12;
+        let l11: &mut Self.S11;
+        let l10: &mut Self.S10;
+        let l9: &mut Self.S9;
+        let l8: &mut Self.S8;
+        let l7: &mut Self.S7;
+        let l6: &mut Self.S6;
+        let l5: &mut Self.S5;
+        let l4: &mut Self.S4;
+        let l3: &mut Self.S3;
+        let l2: &mut Self.S2;
+        let l1: &mut Self.S1;
+        let l0: &mut Self.S0;
+        let big_set: &mut u64;
+        let extra0: &mut u64;
+        let extra1: &mut u64;
+        let extra2: &mut u64;
+        let extra3: &mut u64;
+        let extra4: &mut u64;
+        let extra5: &mut u64;
+        let extra6: &mut u64;
+        let extra7: &mut u64;
+        let extra8: &mut u64;
+        let extra9: &mut u64;
+
+        l78 = &mut copy(l79).S79::f0;
+
+        l77 = &mut copy(l78).S78::f0;
+
+        l76 = &mut copy(l77).S77::f0;
+
+        l75 = &mut copy(l76).S76::f0;
+
+        l74 = &mut copy(l75).S75::f0;
+
+        l73 = &mut copy(l74).S74::f0;
+
+        l72 = &mut copy(l73).S73::f0;
+
+        l71 = &mut copy(l72).S72::f0;
+
+        l70 = &mut copy(l71).S71::f0;
+
+        l69 = &mut copy(l70).S70::f0;
+
+        l68 = &mut copy(l69).S69::f0;
+
+        l67 = &mut copy(l68).S68::f0;
+
+        l66 = &mut copy(l67).S67::f0;
+
+        l65 = &mut copy(l66).S66::f0;
+
+        l64 = &mut copy(l65).S65::f0;
+
+        l63 = &mut copy(l64).S64::f0;
+
+        l62 = &mut copy(l63).S63::f0;
+
+        l61 = &mut copy(l62).S62::f0;
+
+        l60 = &mut copy(l61).S61::f0;
+
+        l59 = &mut copy(l60).S60::f0;
+
+        l58 = &mut copy(l59).S59::f0;
+
+        l57 = &mut copy(l58).S58::f0;
+
+        l56 = &mut copy(l57).S57::f0;
+
+        l55 = &mut copy(l56).S56::f0;
+
+        l54 = &mut copy(l55).S55::f0;
+
+        l53 = &mut copy(l54).S54::f0;
+
+        l52 = &mut copy(l53).S53::f0;
+
+        l51 = &mut copy(l52).S52::f0;
+
+        l50 = &mut copy(l51).S51::f0;
+
+        l49 = &mut copy(l50).S50::f0;
+
+        l48 = &mut copy(l49).S49::f0;
+
+        l47 = &mut copy(l48).S48::f0;
+
+        l46 = &mut copy(l47).S47::f0;
+
+        l45 = &mut copy(l46).S46::f0;
+
+        l44 = &mut copy(l45).S45::f0;
+
+        l43 = &mut copy(l44).S44::f0;
+
+        l42 = &mut copy(l43).S43::f0;
+
+        l41 = &mut copy(l42).S42::f0;
+
+        l40 = &mut copy(l41).S41::f0;
+
+        l39 = &mut copy(l40).S40::f0;
+
+        l38 = &mut copy(l39).S39::f0;
+
+        l37 = &mut copy(l38).S38::f0;
+
+        l36 = &mut copy(l37).S37::f0;
+
+        l35 = &mut copy(l36).S36::f0;
+
+        l34 = &mut copy(l35).S35::f0;
+
+        l33 = &mut copy(l34).S34::f0;
+
+        l32 = &mut copy(l33).S33::f0;
+
+        l31 = &mut copy(l32).S32::f0;
+
+        l30 = &mut copy(l31).S31::f0;
+
+        l29 = &mut copy(l30).S30::f0;
+
+        l28 = &mut copy(l29).S29::f0;
+
+        l27 = &mut copy(l28).S28::f0;
+
+        l26 = &mut copy(l27).S27::f0;
+
+        l25 = &mut copy(l26).S26::f0;
+
+        l24 = &mut copy(l25).S25::f0;
+
+        l23 = &mut copy(l24).S24::f0;
+
+        l22 = &mut copy(l23).S23::f0;
+
+        l21 = &mut copy(l22).S22::f0;
+
+        l20 = &mut copy(l21).S21::f0;
+
+        l19 = &mut copy(l20).S20::f0;
+
+        l18 = &mut copy(l19).S19::f0;
+
+        l17 = &mut copy(l18).S18::f0;
+
+        l16 = &mut copy(l17).S17::f0;
+
+        l15 = &mut copy(l16).S16::f0;
+
+        l14 = &mut copy(l15).S15::f0;
+
+        l13 = &mut copy(l14).S14::f0;
+
+        l12 = &mut copy(l13).S13::f0;
+
+        l11 = &mut copy(l12).S12::f0;
+
+        l10 = &mut copy(l11).S11::f0;
+
+        l9 = &mut copy(l10).S10::f0;
+
+        l8 = &mut copy(l9).S9::f0;
+
+        l7 = &mut copy(l8).S8::f0;
+
+        l6 = &mut copy(l7).S7::f0;
+
+        l5 = &mut copy(l6).S6::f0;
+
+        l4 = &mut copy(l5).S5::f0;
+
+        l3 = &mut copy(l4).S4::f0;
+
+        l2 = &mut copy(l3).S3::f0;
+
+        l1 = &mut copy(l2).S2::f0;
+
+        l0 = &mut copy(l1).S1::f0;
+
+        big_set = &mut copy(l0).S0::f0;
+
+        extra0 = copy(big_set);
+        extra1 = copy(big_set);
+        extra2 = copy(big_set);
+        extra3 = copy(big_set);
+        extra4 = copy(big_set);
+        extra5 = copy(big_set);
+        extra6 = copy(big_set);
+        extra7 = copy(big_set);
+        extra8 = copy(big_set);
+        extra9 = copy(big_set);
+        *move(big_set) = 0;
+        return;
+    }
+
+}
