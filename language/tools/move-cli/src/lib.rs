@@ -24,8 +24,10 @@ use anyhow::{anyhow, bail, Result};
 use std::{
     collections::{btree_map, BTreeMap},
     convert::TryFrom,
+    ffi::OsStr,
     fs,
     path::{Path, PathBuf},
+    process::{self, Command},
 };
 
 pub mod package;
@@ -70,16 +72,34 @@ impl OnDiskStateView {
             fs::create_dir_all(&build_dir)?;
         }
 
-        let storage_dir = storage_dir.into();
+        let storage_dir: PathBuf = storage_dir.into();
         if !storage_dir.exists() {
             fs::create_dir_all(&storage_dir)?;
+            run_git_command(&storage_dir, "initialize repository", vec!["init"])?;
+            run_git_command(
+                &storage_dir,
+                "set branch",
+                vec!["checkout", "-b", &format_git_branch_name(0)],
+            )?;
+            run_git_command(
+                &storage_dir,
+                "commit changes",
+                vec![
+                    "commit",
+                    "--all",
+                    "--allow-empty",
+                    "--message",
+                    "initilization",
+                ],
+            )?;
         }
 
+        // it is important to canonicalize the path here because `is_data_path()` relies on the
+        // fact that storage_dir is canonicalized.
+        let storage_dir = storage_dir.canonicalize()?;
         Ok(Self {
             build_dir,
-            // it is important to canonicalize the path here because `is_data_path()` relies on the
-            // fact that storage_dir is canonicalized.
-            storage_dir: storage_dir.canonicalize()?,
+            storage_dir,
         })
     }
 
@@ -279,7 +299,8 @@ impl OnDiskStateView {
         if !path.exists() {
             fs::create_dir_all(path.parent().unwrap())?;
         }
-        Ok(fs::write(path, bcs_bytes)?)
+        fs::write(path, bcs_bytes)?;
+        Ok(())
     }
 
     pub fn save_event(
@@ -307,16 +328,18 @@ impl OnDiskStateView {
         // grab the old event log (if any) and append this event to it
         let mut event_log = self.get_events(&path)?;
         event_log.push(event);
-        Ok(fs::write(path, &bcs::to_bytes(&event_log)?)?)
+        fs::write(path, &bcs::to_bytes(&event_log)?)?;
+        Ok(())
     }
 
     /// Save `module` on disk under the path `module.address()`/`module.name()`
-    pub fn save_module(&self, module_id: &ModuleId, module_bytes: &[u8]) -> Result<()> {
+    fn save_module(&self, module_id: &ModuleId, module_bytes: &[u8]) -> Result<()> {
         let path = self.get_module_path(module_id);
         if !path.exists() {
             fs::create_dir_all(path.parent().unwrap())?
         }
-        Ok(fs::write(path, &module_bytes)?)
+        fs::write(path, &module_bytes)?;
+        Ok(())
     }
 
     // keep the mv_interfaces generated in the build_dir in-sync with the modules on storage. The
@@ -408,6 +431,118 @@ impl OnDiskStateView {
             }
         }
         Ok(CodeCache(modules))
+    }
+
+    //
+    // Git utilities
+    //
+
+    fn run_git_command<I: IntoIterator<Item = S>, S: AsRef<OsStr>>(
+        &self,
+        error_case: &str,
+        args: I,
+    ) -> Result<process::Output> {
+        run_git_command(&self.storage_dir, error_case, args)
+    }
+
+    pub fn save_storage_state(&self, commit_msg: &str) -> Result<()> {
+        let mut num_branches = self.git_number_branches()?;
+        let current_branch = self.git_current_branch()?;
+        if current_branch != num_branches - 1 {
+            let mut args = vec!["branch", "-D"];
+            let branches = (current_branch + 1..num_branches)
+                .map(|n| format!("{}", n))
+                .collect::<Vec<_>>();
+            for branch in &branches {
+                args.push(branch)
+            }
+            self.run_git_command("reset branches", args)?;
+            num_branches = current_branch + 1
+        }
+        // checkout next branch
+        self.run_git_command(
+            "mark branch",
+            vec!["checkout", "-b", &format_git_branch_name(num_branches)],
+        )?;
+        // add all files
+        self.run_git_command("add files", vec!["add", "--all"])?;
+        // commit all files
+        self.run_git_command(
+            "commit changes",
+            vec!["commit", "--all", "--allow-empty", "--message", commit_msg],
+        )?;
+        Ok(())
+    }
+
+    pub fn set_state(&self, offset: i64) -> Result<()> {
+        let current_branch = self.git_current_branch()? as i64;
+        let max_branch = (self.git_number_branches()? - 1) as i64;
+        if offset < 0 && current_branch + offset < 0 {
+            panic!("helpful neg error")
+        }
+        if offset > 0 && current_branch + offset > max_branch {
+            panic!("helpful pos error")
+        }
+        self.run_git_command(
+            "move branch",
+            vec![
+                "checkout",
+                &format_git_branch_name((current_branch + offset) as usize),
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn git_number_branches(&self) -> Result<usize> {
+        let output = self.run_git_command("retrieve branches", vec!["branch"])?;
+        let output_string = String::from_utf8(output.stdout)?;
+        let count = output_string.chars().filter(|c| c == &'\n').count();
+        Ok(count)
+    }
+
+    pub fn git_current_branch(&self) -> Result<usize> {
+        let output = self.run_git_command(
+            "retrieve current branch",
+            vec!["symbolic-ref", "--short", "HEAD"],
+        )?;
+        let output_string = String::from_utf8(output.stdout)?;
+        Ok(output_string
+            .trim_matches(char::is_whitespace)
+            .parse()
+            .unwrap())
+    }
+}
+
+fn run_git_command<I: IntoIterator<Item = S>, S: AsRef<OsStr>>(
+    storage_dir: &PathBuf,
+    error_case: &str,
+    args: I,
+) -> Result<process::Output> {
+    let output = Command::new("git")
+        .args(args)
+        .current_dir(storage_dir)
+        .output()?;
+    check_storage_git_command_output(error_case, storage_dir, output)
+}
+
+fn format_git_branch_name(txn_number: usize) -> String {
+    format!("{}", txn_number)
+}
+
+fn check_storage_git_command_output(
+    case: &str,
+    storage_dir: &PathBuf,
+    output: process::Output,
+) -> Result<process::Output> {
+    if !output.status.success() {
+        bail!(
+            "Failed to {} for git storage in '{}'. Recieved failure: {:?}",
+            case,
+            storage_dir.display(),
+            output
+        )
+    } else {
+        Ok(output)
     }
 }
 

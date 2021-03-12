@@ -156,6 +156,13 @@ pub enum Command {
     /// Run well-formedness checks on the `storage` and `build` directories.
     #[structopt(name = "doctor")]
     Doctor {},
+
+    /// Set the storage state, advancing or resetting the state based on an offset
+    #[structopt(name = "set-state")]
+    SetState {
+        #[structopt(long = "offset")]
+        offset: i64,
+    },
 }
 
 impl Move {
@@ -188,7 +195,7 @@ impl Move {
                 .into_iter()
                 .filter(|m| !state.has_module(&m.self_id()))
                 .collect();
-
+            let has_new_modules = !new_modules.is_empty();
             let mut serialized_modules = vec![];
             for module in new_modules {
                 let mut module_bytes = vec![];
@@ -196,6 +203,9 @@ impl Move {
                 serialized_modules.push((module.self_id(), module_bytes));
             }
             state.save_modules(&serialized_modules)?;
+            if has_new_modules {
+                state.save_storage_state("prepare state")?;
+            }
         }
 
         Ok(state)
@@ -309,6 +319,7 @@ fn publish(
         state.save_modules(&serialized_modules)?;
     }
 
+    state.save_storage_state(&arg_based_commit_msg())?;
     Ok(())
 }
 
@@ -399,14 +410,18 @@ fn run(
             &vm_type_args,
             &signer_addresses,
             txn_args,
-        )
+        )?
     } else {
         let (changeset, events) = session.finish().map_err(|e| e.into_vm_status())?;
         if verbose {
             explain_execution_effects(&changeset, &events, &state)?
         }
-        maybe_commit_effects(!dry_run, changeset, events, &state)
+        maybe_commit_effects(!dry_run, changeset, events, &state)?
     }
+    if !dry_run {
+        state.save_storage_state(&arg_based_commit_msg())?;
+    }
+    Ok(())
 }
 
 fn get_cost_strategy(gas_budget: Option<u64>) -> Result<CostStrategy<'static>> {
@@ -987,5 +1002,19 @@ fn main() -> Result<()> {
             let state = move_args.prepare_state(false)?;
             doctor(state)
         }
+        Command::SetState { offset } => {
+            let state = move_args.prepare_state(false)?;
+            state.set_state(*offset)
+        }
     }
+}
+
+fn arg_based_commit_msg() -> String {
+    let mut args = std::env::args();
+    // advance past first argument
+    args.next();
+    format!(
+        "{}",
+        args.collect::<Vec<String>>().join(" ").escape_default()
+    )
 }
