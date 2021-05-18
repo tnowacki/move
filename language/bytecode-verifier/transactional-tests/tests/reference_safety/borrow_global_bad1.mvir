@@ -9,7 +9,8 @@ module 0x1.A {
         let sender: address;
         sender = Signer.address_of(move(account));
         x = borrow_global_mut<T>(move(sender));
-        // cannot acquire T, still borrowed
+        // now valid! can borrow from global storage more than once as long as you do not write
+        // to an extension
         y = borrow_global_mut<T>(move(addr));
         _ = move(x);
         _ = move(y);

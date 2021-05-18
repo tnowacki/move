@@ -12,7 +12,7 @@ module 0x1.M {
             x = &mut copy(root).S::g;
         }
 
-        // INVALID x is still borrowing f
+        // Now valid! not an extension of any ref
         *(&mut copy(root).S::f) = 1;
 
         return;

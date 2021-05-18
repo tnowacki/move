@@ -7,8 +7,7 @@ module 0x1.M {
         a = 0;
         r1 = &mut a;
         r2 = &mut a;
-        // cannot write to r2, r1 "owns" the data....
-        // this might be improved upon later
+        // can now right to both! neither is an extension of the other
         *move(r2) = 2;
         *move(r1) = 1;
         return;

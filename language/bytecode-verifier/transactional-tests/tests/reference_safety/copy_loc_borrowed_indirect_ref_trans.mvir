@@ -8,7 +8,7 @@ module 0x1.Tester {
         x = 0;
         y = 0;
         r1 = Self.foo(&mut x, &mut y);
-        // ref trans is no longer preserved at the bytecode level
+        // can copy even though data is "owned" by r1. bytecode verifier does not check ref trans
         _ = copy(x);
         return;
     }

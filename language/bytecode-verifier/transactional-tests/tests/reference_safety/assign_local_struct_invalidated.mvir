@@ -45,8 +45,7 @@ main() {
     t = Tester.new(0);
     old_ref = &mut t;
     ref_t = &mut t;
-    // cannot call replace, old_ref owns t
-    // this might be relaxed later
+    // now valid! can use the mutable reference in a call as long as there are no extensions
     Tester.replace(copy(ref_t));
     v_from_ref = Tester.value(move(ref_t));
     tt = &mut t;

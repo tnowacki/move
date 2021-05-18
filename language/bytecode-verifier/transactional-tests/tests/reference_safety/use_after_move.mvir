@@ -24,7 +24,7 @@ module 0x42.A {
         ref1 = &mut move(this).T::value;
         ref2 = copy(ref1);
         b2 = B.new(3);
-        // cannot write to ref1, ref2 still borrows
+        // can write to ref1 as ref2 is not an extension
         *move(ref1) = move(b2);
 
         x = *move(ref2);

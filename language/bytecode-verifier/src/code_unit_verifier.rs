@@ -6,7 +6,7 @@
 //! abstract_interpreter.rs. CodeUnitVerifier simply orchestrates calls into these two files.
 use crate::{
     acquires_list_verifier::AcquiresVerifier, control_flow, locals_safety, reference_safety,
-    stack_usage_verifier::StackUsageVerifier, type_safety,
+    reference_safety2, stack_usage_verifier::StackUsageVerifier, type_safety,
 };
 use move_binary_format::{
     access::ModuleAccess,
@@ -87,10 +87,24 @@ impl<'a> CodeUnitVerifier<'a> {
     }
 
     fn verify_common(&self) -> PartialVMResult<()> {
+        const REF_NEW_VERSION_REMOVE_ME: &'static str = "SET_BASED";
+        let use_new_ref_safety = {
+            let val = std::env::var(REF_NEW_VERSION_REMOVE_ME).expect(&format!(
+                "Please set the env '{}' to 'true'/'1' or 'false'/'0'. \
+                Any non-true setting will be interpreted as false",
+                REF_NEW_VERSION_REMOVE_ME
+            ));
+            val.parse::<bool>() == Ok(true) || val.parse::<usize>() == Ok(1)
+        };
         control_flow::verify(self.function_view.index(), self.function_view.code())?;
         StackUsageVerifier::verify(&self.resolver, &self.function_view)?;
         type_safety::verify(&self.resolver, &self.function_view)?;
         locals_safety::verify(&self.resolver, &self.function_view)?;
-        reference_safety::verify(&self.resolver, &self.function_view, &self.name_def_map)
+        if use_new_ref_safety {
+            reference_safety2::verify(&self.resolver, &self.function_view, &self.name_def_map)?
+        } else {
+            reference_safety::verify(&self.resolver, &self.function_view, &self.name_def_map)?
+        };
+        Ok(())
     }
 }

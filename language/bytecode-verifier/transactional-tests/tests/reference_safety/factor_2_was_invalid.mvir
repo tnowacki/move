@@ -15,7 +15,7 @@ module 0x1.M {
         } else {
             eps = &x1;
         }
-        // Now valid! the mutable reference is not written to so it is safe!
+        // can borrow mut as long as it is not written to
         g_mut = &mut move(root).S::g;
         g_imm = freeze(move(g_mut));
         return;
