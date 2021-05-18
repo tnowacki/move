@@ -548,6 +548,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "borrow-set"
+version = "0.0.1"
+dependencies = [
+ "diem-workspace-hack",
+ "mirai-annotations",
+]
+
+[[package]]
 name = "bounded-executor"
 version = "0.1.0"
 dependencies = [
