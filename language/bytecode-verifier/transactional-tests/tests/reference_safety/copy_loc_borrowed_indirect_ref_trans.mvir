@@ -8,7 +8,7 @@ module Tester {
         x = 0;
         y = 0;
         r1 = Self.foo(&mut x, &mut y);
-        // cannot copy, data is "owned" by r1. Would violate ref trans
+        // can copy even though data is "owned" by r1. bytecode verifier does not check ref trans
         _ = copy(x);
         return;
     }

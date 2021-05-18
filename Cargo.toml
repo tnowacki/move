@@ -58,6 +58,7 @@ members = [
     "json-rpc/types/proto",
     "language/benchmarks",
     "language/borrow-graph",
+    "language/borrow-set",
     "language/bytecode-verifier",
     "language/bytecode-verifier/bytecode-verifier-tests",
     "language/bytecode-verifier/invalid-mutations",

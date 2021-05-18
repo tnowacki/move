@@ -8,7 +8,7 @@ module A {
         let t_ref: &mut Self.T;
         sender = Signer.address_of(move(account));
         t_ref = borrow_global_mut<T>(copy(sender));
-        // cannot acquire T, still borrowed
+        // can acquire T even though still borrowed
         t_ref = borrow_global_mut<T>(move(sender));
         _ = move(t_ref);
         return;

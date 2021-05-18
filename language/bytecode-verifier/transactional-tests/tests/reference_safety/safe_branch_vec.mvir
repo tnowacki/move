@@ -1,0 +1,53 @@
+//# publish --address 0x1
+module NonEmptyVec {
+    import 0x1.Vector;
+    struct NonEmptyVec<T> has copy, drop, store { inner: vector<T> }
+    public new<T>(elem: T): Self.NonEmptyVec<T> {
+        return NonEmptyVec<T> { inner: Vector.singleton<T>(move(elem)) };
+    }
+
+    public borrow<T>(v: &Self.NonEmptyVec<T>, i: u64): &T {
+        return Vector.borrow<T>(&move(v).inner, move(i));
+    }
+
+    public borrow_mut<T>(v: &mut Self.NonEmptyVec<T>, i: u64): &mut T {
+        return Vector.borrow_mut<T>(&mut move(v).inner, move(i));
+    }
+}
+
+//# publish --address 0x42
+module LRUish {
+    import 0x1.NonEmptyVec;
+    struct Trips {
+        bucket1: NonEmptyVec.NonEmptyVec<u64>,
+        bucket2: NonEmptyVec.NonEmptyVec<u64>,
+        bucket3: NonEmptyVec.NonEmptyVec<u64>,
+    }
+
+    update(trips: &mut Self.Trips, new_head: u64) {
+        let insertion_point: &mut u64;
+        let other_1: &mut NonEmptyVec.NonEmptyVec<u64>;
+        let other_2: &mut NonEmptyVec.NonEmptyVec<u64>;
+        if (copy(new_head) < 100) {
+            insertion_point = NonEmptyVec.borrow_mut<u64>(&mut copy(trips).bucket1, 0);
+            other_1 = &mut copy(trips).bucket2;
+            other_2 = &mut copy(trips).bucket3;
+        } else { if (copy(new_head) < 1000) {
+            other_1 = &mut copy(trips).bucket1;
+            insertion_point = NonEmptyVec.borrow_mut<u64>(&mut copy(trips).bucket2, 0);
+            other_2 = &mut copy(trips).bucket3;
+        } else {
+            other_1 = &mut copy(trips).bucket1;
+            other_2 = &mut copy(trips).bucket3;
+            insertion_point = NonEmptyVec.borrow_mut<u64>(&mut copy(trips).bucket2, 0);
+        } }
+        *NonEmptyVec.borrow_mut<u64>(copy(other_1), 0) =
+            *NonEmptyVec.borrow<u64>(freeze(copy(other_2)), 0);
+        *NonEmptyVec.borrow_mut<u64>(copy(other_2), 0) =
+            *NonEmptyVec.borrow<u64>(freeze(copy(other_1)), 0);
+        *move(insertion_point) =
+            move(new_head) + *NonEmptyVec.borrow<u64>(freeze(copy(other_1)), 0);
+        return;
+    }
+
+}

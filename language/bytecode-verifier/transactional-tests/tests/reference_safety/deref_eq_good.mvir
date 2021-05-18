@@ -19,4 +19,14 @@ module M {
         _ = move(x_ref);
         return move(b);
     }
+
+    public compare3(t1: &mut Self.T, t2: &mut Self.T) : bool {
+        let b: bool;
+        let x_ref: &mut u64;
+        x_ref = &mut copy(t1).v;
+        // can read from t1 even though it is borrowed by x_ref
+        // bytecode verifier no longer maintains ref trans
+        b = move(t1) == move(t2);
+        return move(b);
+    }
 }

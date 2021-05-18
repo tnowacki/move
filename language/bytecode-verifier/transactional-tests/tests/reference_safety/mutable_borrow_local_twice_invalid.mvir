@@ -7,8 +7,7 @@ module M {
         a = 0;
         r1 = &mut a;
         r2 = &mut a;
-        // cannot write to r2, r1 "owns" the data....
-        // this might be improved upon later
+        // can write to r2 even though r1 "owns"
         *move(r2) = 2;
         *move(r1) = 1;
         return;

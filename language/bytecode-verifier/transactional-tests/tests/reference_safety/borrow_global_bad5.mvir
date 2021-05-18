@@ -1,27 +1,28 @@
 //# publish --address 0x1
 module A {
     import 0x1.Signer;
-    struct T has key {v: u64}
+    struct T has key, drop {v: u64}
 
     public A5(account: &signer, b: bool) acquires T {
         let u: u64;
         let t: Self.T;
-        let t1_ref: &mut Self.T;
+        let v_ref: &mut u64;
         let t2_ref: &mut Self.T;
         let sender: address;
 
         sender = Signer.address_of(move(account));
         t = T { v: 0 };
         if (move(b)) {
-            t1_ref = borrow_global_mut<T>(copy(sender));
+            v_ref = &mut (borrow_global_mut<T>(copy(sender))).v;
         } else {
-            t1_ref = &mut t;
+            v_ref = &mut (&mut t).v;
         }
 
-        // cannot acquire T, it is still borrowed
+        // can acquire T even though it is still borrowed
         t2_ref = borrow_global_mut<T>(move(sender));
-        _ = move(t1_ref);
-        _ = move(t2_ref);
+        // cannot write to t2_ref, might invalidate v_ref
+        *move(t2_ref) = T { v: 0 };
+        *move(v_ref) = 0;
         T { v: u } = move(t);
 
         return;

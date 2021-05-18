@@ -86,7 +86,7 @@ module Tester2 {
         assert(*&copy(point_ref).y == 0, 42);
 
         field_ref = Self.set_and_pick(move(account), copy(point_ref));
-        // this freeze is invalid because of field_ref
+        // the new set based approach allows this! even though it used to be invalid
         x_val = *(&freeze(move(point_ref)).x);
         returned_ref = Self.bump_and_give(move(field_ref));
 
