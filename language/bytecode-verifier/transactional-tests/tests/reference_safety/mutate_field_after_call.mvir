@@ -1,0 +1,36 @@
+//# publish
+module 0x1.KindaVaultLike {
+    struct Vaultish<T: store> has key { item: T }
+
+    public access<T: store>(addr: address): Self.Vaultish<T> acquires Vaultish {
+        return move_from<Vaultish<T>>(move(addr));
+    }
+
+    public borrow_mut<T: store>(v: &mut Self.Vaultish<T>): &mut T {
+        return &mut move(v).Vaultish<T>::item;
+    }
+
+    public restore<T: store>(v: Self.Vaultish<T>) {
+        // imagine move_to but not dealing with it due to signer issues in the test
+        abort(0);
+    }
+}
+
+//# publish
+module 0x42.CoolStuff {
+    import 0x1.KindaVaultLike;
+    struct WowSoValuable has store { value: u64, update_count: u64 }
+
+    public increase_value(addr: address) {
+        let vault: KindaVaultLike.Vaultish<Self.WowSoValuable>;
+        let valuable: &mut Self.WowSoValuable;
+        vault = KindaVaultLike.access<Self.WowSoValuable>(move(addr));
+        valuable = KindaVaultLike.borrow_mut<Self.WowSoValuable>(&mut vault);
+        *&mut copy(valuable).WowSoValuable::value = *&copy(valuable).WowSoValuable::value + 10;
+        *&mut move(valuable).WowSoValuable::update_count =
+            *&copy(valuable).WowSoValuable::update_count + 10;
+        KindaVaultLike.restore<Self.WowSoValuable>(move(vault));
+        return;
+    }
+
+}

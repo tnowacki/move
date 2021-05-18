@@ -1,0 +1,21 @@
+//# publish
+module 0x42.M {
+    struct X has drop { f: u64, g: u64 }
+    struct S has drop { x: Self.X }
+
+    t1(cond: bool, s1: &mut Self.S, s2: &mut Self.S) {
+        let imm: &u64;
+        let mut_: &mut Self.X;
+        if (move(cond)) {
+            imm = &(&move(s1).S::x).X::f;
+            mut_ = &mut move(s2).S::x;
+        } else {
+            imm = &(&move(s2).S::x).X::f;
+            mut_ = &mut move(s1).S::x;
+        };
+        *move(mut_) = X { f: 1, g: 2 };
+        assert(*move(imm) == 0, 42);
+        return;
+    }
+
+}

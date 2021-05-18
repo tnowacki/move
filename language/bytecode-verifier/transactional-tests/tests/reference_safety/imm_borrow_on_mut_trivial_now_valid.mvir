@@ -11,7 +11,7 @@ module 0x1.Tester {
         let returned_ref: &u64;
 
         returned_ref = Self.bump_and_give(copy(x_ref));
-        // valid, doesn't write to the ref!
+        // valid as the bytecode verifier no longer maintains ref trans
         assert(*copy(returned_ref) == *freeze(&mut move(x_ref).X::f) + 1, 42);
         return move(returned_ref);
     }
@@ -20,8 +20,6 @@ module 0x1.Tester {
         let returned_ref: &u64;
 
         returned_ref = Self.bump_and_give(copy(x_ref));
-        // This is still valid, but might not be in other cases. See other Imm Borrow tests
-        // i.e. you might hit FreezeRefExistsMutableBorrowError
         assert(*copy(returned_ref) == *(&freeze(move(x_ref)).X::f) + 1, 42);
         return move(returned_ref);
     }

@@ -1,0 +1,15 @@
+//# publish
+module 0x1.M {
+    struct S { f: u64, g: u64 }
+    id(s: &mut Self.S): &mut Self.S {
+        return move(s);
+    }
+
+    t(s: &mut Self.S) {
+        let s2: &mut Self.S;
+        s2 = Self.id(move(s));
+        *&mut copy(s2).S::f = 100;
+        *&mut copy(s2).S::g = 200;
+        return;
+    }
+}

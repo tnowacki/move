@@ -9,9 +9,8 @@ module 0x1.Tester {
 
         x = T { f: 0 };
         r1 = &mut (&mut x).T::f;
-        // ref trans is no longer preserved at the bytecode level
+        // cannot copy x, data is partially owned by r1. violates ref trans
         T { f: f } = copy(x);
-        _ = move(r1);
         T { f: f } = move(x);
         return;
     }
