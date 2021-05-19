@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::paths::*;
+use mirai_annotations::debug_checked_verify;
 use std::{
     cmp,
     collections::BTreeSet,
     fmt::{self, Debug},
     iter,
+    iter::FromIterator,
 };
 
 //**************************************************************************************************
@@ -21,8 +23,9 @@ pub struct RefID(pub(crate) usize);
 /// for a single reference
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Ref<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> {
+    pinned: bool,
     /// true if mutable, false otherwise
-    pub(crate) mutable: bool,
+    mutable: bool,
     /// Set of paths defining possible locations for this reference
     paths: BTreeSet<BorrowPath<Loc, Instr, Lbl>>,
 }
@@ -40,36 +43,64 @@ pub(crate) struct BorrowPath<Loc, Instr, Lbl> {
 // Impls
 //**************************************************************************************************
 
-impl RefID {
-    /// Creates a new reference id from the given number
-    pub const fn new(x: usize) -> Self {
-        RefID(x)
-    }
-
-    /// Returns the number representing this reference id.
-    pub fn number(&self) -> usize {
-        self.0
-    }
-}
-
 impl<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> Ref<Loc, Instr, Lbl> {
-    /// Create a new root reference
-    pub(crate) fn new(
-        mutable: bool,
-        loc: Loc,
-        mut paths: BTreeSet<BorrowPath<Loc, Instr, Lbl>>,
-    ) -> Self {
-        if paths.is_empty() {
-            paths.insert(BorrowPath {
-                loc,
-                path: Path::empty(),
-            });
+    pub(crate) fn pinned(mutable: bool, init_offset: Option<(Loc, Lbl)>) -> Self {
+        let paths = match init_offset {
+            Some((loc, lbl)) => {
+                BTreeSet::from_iter(vec![BorrowPath::initial(loc, Offset::Labeled(lbl))])
+            }
+            None => BTreeSet::new(),
+        };
+        Self {
+            pinned: true,
+            mutable,
+            paths,
         }
-        Self { mutable, paths }
+    }
+
+    pub(crate) fn new(mutable: bool, paths: BTreeSet<BorrowPath<Loc, Instr, Lbl>>) -> Self {
+        Self {
+            pinned: false,
+            mutable,
+            paths,
+        }
+    }
+
+    pub(crate) fn make_copy(&self, loc: Loc, mutable: bool) -> Self {
+        let paths = self.copy_paths(loc);
+        Self {
+            pinned: false,
+            mutable,
+            paths,
+        }
+    }
+
+    pub(crate) fn copy_paths(&self, loc: Loc) -> BTreeSet<BorrowPath<Loc, Instr, Lbl>> {
+        self.paths
+            .iter()
+            .map(|path| {
+                let mut new_path = path.clone();
+                new_path.loc = loc;
+                new_path
+            })
+            .collect()
+    }
+
+    pub(crate) fn is_mutable(&self) -> bool {
+        self.mutable
+    }
+
+    pub(crate) fn is_pinned(&self) -> bool {
+        self.pinned
+    }
+
+    pub(crate) fn release_paths(&mut self) {
+        assert!(self.pinned);
+        self.paths = BTreeSet::new()
     }
 
     pub(crate) fn paths(&self) -> &BTreeSet<BorrowPath<Loc, Instr, Lbl>> {
-        assert!(!self.paths.is_empty());
+        debug_checked_verify!(self.pinned || !self.paths.is_empty());
         &self.paths
     }
 
@@ -82,6 +113,13 @@ impl<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> Ref<Loc, Instr, Lbl> {
 }
 
 impl<Loc, Instr, Lbl> BorrowPath<Loc, Instr, Lbl> {
+    pub(crate) fn initial(loc: Loc, offset: Offset<Instr, Lbl>) -> Self {
+        Self {
+            loc,
+            path: Path::initial(offset),
+        }
+    }
+
     pub(crate) fn extend(&self, loc: Loc, extension: Offset<Instr, Lbl>) -> Self
     where
         Instr: Copy,
@@ -93,12 +131,12 @@ impl<Loc, Instr, Lbl> BorrowPath<Loc, Instr, Lbl> {
         }
     }
 
-    pub(crate) fn extended_by<'a>(&self, other: &'a Self) -> Ordering<'a, Instr, Lbl>
+    pub(crate) fn compare<'a>(&self, other: &'a Self) -> Ordering<'a, Instr, Lbl>
     where
         Instr: Eq,
         Lbl: Eq,
     {
-        self.path.extended_by(&other.path)
+        self.path.compare(&other.path)
     }
 }
 
