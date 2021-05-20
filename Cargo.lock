@@ -694,6 +694,7 @@ name = "bytecode-verifier"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "borrow-graph",
  "borrow-set",
  "diem-workspace-hack",
  "invalid-mutations",

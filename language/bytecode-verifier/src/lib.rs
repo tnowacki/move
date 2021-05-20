@@ -32,5 +32,6 @@ mod absint;
 mod acquires_list_verifier;
 mod locals_safety;
 mod reference_safety;
+mod reference_safety2;
 mod stack_usage_verifier;
 mod type_safety;

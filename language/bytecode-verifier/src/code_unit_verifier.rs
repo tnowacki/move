@@ -5,7 +5,7 @@
 //! The overall verification is split between stack_usage_verifier.rs and
 //! abstract_interpreter.rs. CodeUnitVerifier simply orchestrates calls into these two files.
 use crate::{
-    acquires_list_verifier::AcquiresVerifier, control_flow, locals_safety, reference_safety,
+    acquires_list_verifier::AcquiresVerifier, control_flow, locals_safety, reference_safety, reference_safety2,
     stack_usage_verifier::StackUsageVerifier, type_safety,
 };
 use move_binary_format::{
@@ -91,6 +91,7 @@ impl<'a> CodeUnitVerifier<'a> {
         StackUsageVerifier::verify(&self.resolver, &self.function_view)?;
         type_safety::verify(&self.resolver, &self.function_view)?;
         locals_safety::verify(&self.resolver, &self.function_view)?;
+        reference_safety2::verify(&self.resolver, &self.function_view, &self.name_def_map)?;
         reference_safety::verify(&self.resolver, &self.function_view, &self.name_def_map)
     }
 }

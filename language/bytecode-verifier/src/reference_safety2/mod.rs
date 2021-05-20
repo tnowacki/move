@@ -9,15 +9,17 @@
 
 mod abstract_state;
 
-use crate::absint::{AbstractInterpreter, BlockInvariant, BlockPostcondition, TransferFunctions};
+use crate::{
+    absint::{AbstractInterpreter, BlockInvariant, BlockPostcondition, TransferFunctions},
+    binary_views::{BinaryIndexedView, FunctionView},
+};
 use abstract_state::{AbstractState, AbstractValue};
 use mirai_annotations::*;
 use move_binary_format::{
-    binary_views::{BinaryIndexedView, FunctionView},
     errors::{PartialVMError, PartialVMResult},
     file_format::{
         Bytecode, CodeOffset, FunctionDefinitionIndex, FunctionHandle, IdentifierIndex,
-        SignatureToken, StructDefinition, StructFieldInformation,
+        StructDefinition, StructFieldInformation,
     },
 };
 use std::collections::{BTreeSet, HashMap};
@@ -271,16 +273,11 @@ fn execute_inner(
             state.release_value(verifier.stack.pop().unwrap());
         }
 
-        Bytecode::LdTrue | Bytecode::LdFalse => {
-            verifier.stack.push(state.value_for(&SignatureToken::Bool))
-        }
-        Bytecode::LdU8(_) => verifier.stack.push(state.value_for(&SignatureToken::U8)),
-        Bytecode::LdU64(_) => verifier.stack.push(state.value_for(&SignatureToken::U64)),
-        Bytecode::LdU128(_) => verifier.stack.push(state.value_for(&SignatureToken::U128)),
-        Bytecode::LdConst(idx) => {
-            let signature = &verifier.resolver.constant_at(*idx).type_;
-            verifier.stack.push(state.value_for(signature))
-        }
+        Bytecode::LdTrue | Bytecode::LdFalse => verifier.stack.push(AbstractValue::NonReference),
+        Bytecode::LdU8(_) => verifier.stack.push(AbstractValue::NonReference),
+        Bytecode::LdU64(_) => verifier.stack.push(AbstractValue::NonReference),
+        Bytecode::LdU128(_) => verifier.stack.push(AbstractValue::NonReference),
+        Bytecode::LdConst(_) => verifier.stack.push(AbstractValue::NonReference),
 
         Bytecode::Add
         | Bytecode::Sub
@@ -340,7 +337,6 @@ impl<'a> TransferFunctions for ReferenceSafetyAnalysis<'a> {
         execute_inner(self, state, bytecode, index)?;
         if index == last_index {
             checked_verify!(self.stack.is_empty());
-            *state = state.construct_canonical_state()
         }
         Ok(())
     }
