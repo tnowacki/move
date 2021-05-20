@@ -19,6 +19,15 @@ pub struct Conflicts<Loc, Lbl: Ord> {
     pub labeled: BTreeMap<Lbl, BTreeMap<RefID, Loc>>,
 }
 
+pub struct Parents<Loc, Lbl: Ord> {
+    /// Not quite parents, but exactly equal
+    pub equal: BTreeSet<RefID>,
+    /// The ref in question extends these refs at an existential
+    pub existential: BTreeMap<RefID, Loc>,
+    /// The ref in question extends these refs at this label
+    pub labeled: BTreeMap<Lbl, BTreeMap<RefID, Loc>>,
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct BorrowSet<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> {
     map: BTreeMap<RefID, Ref<Loc, Instr, Lbl>>,
@@ -28,6 +37,17 @@ pub struct BorrowSet<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> {
 impl<Loc, Lbl: Ord> Conflicts<Loc, Lbl> {
     pub fn is_empty(&self) -> bool {
         let Conflicts {
+            equal,
+            existential,
+            labeled,
+        } = self;
+        equal.is_empty() && existential.is_empty() && labeled.is_empty()
+    }
+}
+
+impl<Loc, Lbl: Ord> Parents<Loc, Lbl> {
+    pub fn is_empty(&self) -> bool {
+        let Parents {
             equal,
             existential,
             labeled,
@@ -153,20 +173,19 @@ impl<Loc: Copy, Instr: Copy + Ord + std::fmt::Display, Lbl: Clone + Ord + std::f
     // Query API
     //**********************************************************************************************
 
-    pub fn borrowed_by(&self, id: RefID, only_mutable: bool) -> Conflicts<Loc, Lbl> {
+    pub fn borrowed_by(&self, id: RefID, mutable_filter: Option<bool>) -> Conflicts<Loc, Lbl> {
         let mut equal = BTreeSet::new();
         let mut existential = BTreeMap::new();
         let mut labeled = BTreeMap::new();
         for path in self.map[&id].paths() {
-            for (other_id, other_ref) in &self.map {
+            let filtered = self.map.iter().filter(|(other_id, other_ref)| {
+                id != **other_id
+                    && mutable_filter
+                        .map(|filter| filter == other_ref.is_mutable())
+                        .unwrap_or(true)
+            });
+            for (other_id, other_ref) in filtered {
                 let other_id = *other_id;
-                if id == other_id {
-                    continue;
-                }
-                if only_mutable && !self.is_mutable(other_id) {
-                    continue;
-                }
-
                 for other_path in other_ref.paths() {
                     match path.compare(other_path) {
                         Ordering::Incomparable | Ordering::LeftExtendsRight => (),
@@ -189,6 +208,47 @@ impl<Loc: Copy, Instr: Copy + Ord + std::fmt::Display, Lbl: Clone + Ord + std::f
 
         debug_checked_postcondition!(labeled.values().all(|refs| !refs.is_empty()));
         Conflicts {
+            equal,
+            existential,
+            labeled,
+        }
+    }
+
+    pub fn borrows_from(&self, id: RefID, mutable_filter: Option<bool>) -> Parents<Loc, Lbl> {
+        let mut equal = BTreeSet::new();
+        let mut existential = BTreeMap::new();
+        let mut labeled = BTreeMap::new();
+        for path in self.map[&id].paths() {
+            let filtered = self.map.iter().filter(|(other_id, other_ref)| {
+                id != **other_id
+                    && mutable_filter
+                        .map(|filter| filter == other_ref.is_mutable())
+                        .unwrap_or(true)
+            });
+            for (other_id, other_ref) in filtered {
+                let other_id = *other_id;
+                for other_path in other_ref.paths() {
+                    match other_path.compare(path) {
+                        Ordering::Incomparable | Ordering::LeftExtendsRight => (),
+                        Ordering::Equal => {
+                            equal.insert(other_id);
+                        }
+                        Ordering::RightExtendsLeft(Offset::Existential(_)) => {
+                            existential.insert(other_id, path.loc);
+                        }
+                        Ordering::RightExtendsLeft(Offset::Labeled(lbl)) => {
+                            labeled
+                                .entry(lbl.clone())
+                                .or_insert_with(BTreeMap::new)
+                                .insert(other_id, path.loc);
+                        }
+                    }
+                }
+            }
+        }
+
+        debug_checked_postcondition!(labeled.values().all(|refs| !refs.is_empty()));
+        Parents {
             equal,
             existential,
             labeled,

@@ -147,13 +147,20 @@ impl AbstractState {
     fn is_writable(&self, id: RefID) -> bool {
         checked_precondition!(self.borrow_set.is_mutable(id));
         let Conflicts {
-            equal,
-            existential,
-            labeled,
-        } = self.borrow_set.borrowed_by(id, /* only_mutable */ false);
-        let has_imm_equal = equal.iter().any(|id| !self.borrow_set.is_mutable(*id));
-        let has_extensions = !existential.is_empty() || !labeled.is_empty();
-        !has_imm_equal && !has_extensions
+            equal: _equal,
+            existential: ext_conflicts,
+            labeled: lbl_conflicts,
+        } = self.borrow_set.borrowed_by(id, /* no filter */ None);
+        let has_extensions = !ext_conflicts.is_empty() || !lbl_conflicts.is_empty();
+        let parents = self
+            .borrow_set
+            .borrows_from(id, /* only immutable */ Some(false));
+        debug_assert!(_equal
+            .iter()
+            .all(|id| self.borrow_set.is_mutable(*id) || parents.equal.contains(id)));
+        debug_assert!(parents.equal.iter().all(|id| _equal.contains(id)));
+        let has_imm_parents = !parents.is_empty();
+        !has_extensions && !has_imm_parents
     }
 
     // Readable if
@@ -169,13 +176,24 @@ impl AbstractState {
             equal: _,
             existential,
             labeled,
-        } = self.borrow_set.borrowed_by(id, /* only_mutable */ true);
+        } = self
+            .borrow_set
+            .borrowed_by(id, /* only mutable */ Some(true));
         let has_mut_extensions_at_unknown = !existential.is_empty();
         let has_mut_extensions_at_field = match at_field_opt {
             None => !labeled.is_empty(),
             Some(f) => labeled.contains_key(&Label::Field(f)),
         };
         !has_mut_extensions_at_unknown && !has_mut_extensions_at_field
+    }
+
+    fn has_no_equals_in_set(&self, id: RefID, candidates: &BTreeSet<RefID>) -> bool {
+        let Conflicts { equal, .. } = self.borrow_set.borrowed_by(id, None);
+        equal
+            .into_iter()
+            .filter(|id| candidates.contains(id))
+            .next()
+            .is_none()
     }
 
     /// checks if local@idx is borrowed
@@ -404,16 +422,9 @@ impl AbstractState {
             .filter(|id| self.borrow_set.is_mutable(**id))
             .copied()
         {
-            let mut conflicts = self.borrow_set.borrowed_by(id, /* only_mutable */ false);
-            conflicts.equal = conflicts
-                .equal
-                .into_iter()
-                .filter(|equal_id| all_references_to_borrow_from.contains(equal_id))
-                .collect();
-            if !conflicts.is_empty() {
-                self.borrow_set.display();
-                dbg!(id);
-                dbg!(conflicts);
+            let is_transferable = self.is_writable(id)
+                && self.has_no_equals_in_set(id, &all_references_to_borrow_from);
+            if !is_transferable {
                 return Err(self.error(StatusCode::CALL_BORROWED_MUTABLE_REFERENCE_ERROR, offset));
             }
             mutable_references_to_borrow_from.insert(id);
@@ -473,13 +484,18 @@ impl AbstractState {
         }
 
         // Check mutable references can be transfered
-        let mutable_return_refs = values
+        let all_return_refs = values
             .into_iter()
             .filter_map(|v| v.ref_id())
-            .filter(|id| self.borrow_set.is_mutable(*id));
+            .collect::<BTreeSet<_>>();
+        let mutable_return_refs = all_return_refs
+            .iter()
+            .filter(|id| self.borrow_set.is_mutable(**id))
+            .copied();
         for id in mutable_return_refs {
-            let conflicts = self.borrow_set.borrowed_by(id, /* only_mutable */ false);
-            if !conflicts.is_empty() {
+            let is_transferable =
+                self.is_writable(id) && self.has_no_equals_in_set(id, &all_return_refs);
+            if !is_transferable {
                 return Err(self.error(StatusCode::RET_BORROWED_MUTABLE_REFERENCE_ERROR, offset));
             }
         }
