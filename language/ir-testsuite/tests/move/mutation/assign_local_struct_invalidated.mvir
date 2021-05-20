@@ -46,6 +46,7 @@ main() {
     old_ref = &mut t;
     ref_t = &mut t;
     Tester.replace(copy(ref_t));
+    // used to fail because of old_ref
     v_from_ref = Tester.value(move(ref_t));
     tt = &mut t;
     v_from_t = Tester.value(move(tt));
@@ -55,4 +56,4 @@ main() {
     return;
 }
 
-// check: CALL_BORROWED_MUTABLE_REFERENCE_ERROR
+// check: Success

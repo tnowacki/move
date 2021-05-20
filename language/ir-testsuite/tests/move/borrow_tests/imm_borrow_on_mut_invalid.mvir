@@ -34,6 +34,7 @@ module Tester {
         assert(*&copy(point_ref).y == 0, 42);
 
         field_ref = Self.set_and_pick(move(account), copy(point_ref));
+        // used to fail because the field couldn't be borrowed
         x_val = *freeze(&mut move(point_ref).x);
         returned_ref = Self.bump_and_give(move(field_ref));
 
@@ -46,7 +47,7 @@ module Tester {
         return move(returned_ref);
     }
 }
-// check: BORROWFIELD_EXISTS_MUTABLE_BORROW_ERROR
+// check: Success
 
 //! new-transaction
 module Tester2 {
@@ -85,6 +86,7 @@ module Tester2 {
         assert(*&copy(point_ref).y == 0, 42);
 
         field_ref = Self.set_and_pick(move(account), copy(point_ref));
+        // Used to fail because it wasn't freezable
         x_val = *(&freeze(move(point_ref)).x);
         returned_ref = Self.bump_and_give(move(field_ref));
 
@@ -97,4 +99,4 @@ module Tester2 {
         return move(returned_ref);
     }
 }
-// check: FREEZEREF_EXISTS_MUTABLE_BORROW_ERROR
+// check: Success

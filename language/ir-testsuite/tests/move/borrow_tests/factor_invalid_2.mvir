@@ -15,6 +15,7 @@ module M {
             eps = &x1;
         }
         // Error: root has weak empty borrow and hence a field cannot be borrowed mutably
+        // UPDATE: used to fail, now is allowed
         g_mut = &mut move(root).g;
         g_imm = freeze(move(g_mut));
         return;
@@ -25,4 +26,4 @@ module M {
     }
 }
 
-// check: BORROWFIELD_EXISTS_MUTABLE_BORROW_ERROR
+// check: Success

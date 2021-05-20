@@ -6,7 +6,10 @@ use crate::{
     absint::{AbstractDomain, JoinResult},
     binary_views::FunctionView,
 };
-use borrow_set::{references::RefID, set::Conflicts};
+use borrow_set::{
+    references::RefID,
+    set::{Conflicts, QueryFilter},
+};
 use mirai_annotations::{checked_precondition, checked_verify};
 use move_binary_format::{
     errors::{PartialVMError, PartialVMResult},
@@ -150,65 +153,21 @@ impl AbstractState {
             equal: _equal,
             existential: ext_conflicts,
             labeled: lbl_conflicts,
-        } = self.borrow_set.borrowed_by(id, /* no filter */ None);
-        let has_extensions = !ext_conflicts.is_empty() || !lbl_conflicts.is_empty();
+        } = self.borrow_set.borrowed_by(id, QueryFilter::empty());
+        ext_conflicts.is_empty() && lbl_conflicts.is_empty()
+    }
+
+    fn has_no_parents_in_set(&self, id: RefID, candidates: &BTreeSet<RefID>) -> bool {
         let parents = self
             .borrow_set
-            .borrows_from(id, /* only immutable */ Some(false));
-        debug_assert!(_equal
-            .iter()
-            .all(|id| self.borrow_set.is_mutable(*id) || parents.equal.contains(id)));
-        debug_assert!(parents.equal.iter().all(|id| _equal.contains(id)));
-        let has_imm_parents = !parents.is_empty();
-        !has_extensions && !has_imm_parents
-    }
-
-    // Readable if
-    // Is Immutable
-    // Is Mutable and no mutable extensions
-    fn is_readable(&self, id: RefID, at_field_opt: Option<FieldHandleIndex>) -> bool {
-        let is_mutable = self.borrow_set.is_mutable(id);
-        if !is_mutable {
-            return true;
-        }
-
-        let Conflicts {
-            equal: _,
-            existential,
-            labeled,
-        } = self
-            .borrow_set
-            .borrowed_by(id, /* only mutable */ Some(true));
-        let has_mut_extensions_at_unknown = !existential.is_empty();
-        let has_mut_extensions_at_field = match at_field_opt {
-            None => !labeled.is_empty(),
-            Some(f) => labeled.contains_key(&Label::Field(f)),
-        };
-        !has_mut_extensions_at_unknown && !has_mut_extensions_at_field
-    }
-
-    fn has_no_equals_in_set(&self, id: RefID, candidates: &BTreeSet<RefID>) -> bool {
-        let Conflicts { equal, .. } = self.borrow_set.borrowed_by(id, None);
-        equal
-            .into_iter()
-            .filter(|id| candidates.contains(id))
-            .next()
-            .is_none()
+            .borrows_from(id, QueryFilter::empty().candidates(candidates));
+        parents.is_empty()
     }
 
     /// checks if local@idx is borrowed
     fn is_local_borrowed(&self, idx: LocalIndex) -> bool {
         let refs = self.borrow_set.all_starting_with_label(&Label::Local(idx));
         !refs.is_empty()
-    }
-
-    /// checks if local@idx is mutably borrowed
-    fn is_local_mutably_borrowed(&self, idx: LocalIndex) -> bool {
-        let refs = self.borrow_set.all_starting_with_label(&Label::Local(idx));
-        refs.keys()
-            .filter(|id| self.borrow_set.is_mutable(**id))
-            .next()
-            .is_some()
     }
 
     /// checks if global@idx is borrowed
@@ -225,7 +184,7 @@ impl AbstractState {
     fn is_frame_safe_to_destroy(&self) -> bool {
         let local_or_global_rooted_refs = self
             .borrow_set
-            .all_starting_with_predicate(|lbl| matches!(lbl, Label::Global(_) | Label::Field(_)));
+            .all_starting_with_predicate(|lbl| matches!(lbl, Label::Global(_) | Label::Local(_)));
         local_or_global_rooted_refs.is_empty()
     }
 
@@ -243,7 +202,7 @@ impl AbstractState {
 
     pub fn copy_loc(
         &mut self,
-        offset: CodeOffset,
+        _offset: CodeOffset,
         local: LocalIndex,
     ) -> PartialVMResult<AbstractValue> {
         match self.locals.get(&local) {
@@ -253,9 +212,6 @@ impl AbstractState {
                     .borrow_set
                     .make_copy((), id, self.borrow_set.is_mutable(id));
                 Ok(AbstractValue::Reference(new_id))
-            }
-            None if self.is_local_mutably_borrowed(local) => {
-                Err(self.error(StatusCode::COPYLOC_EXISTS_BORROW_ERROR, offset))
             }
             None => Ok(AbstractValue::NonReference),
         }
@@ -267,7 +223,14 @@ impl AbstractState {
         local: LocalIndex,
     ) -> PartialVMResult<AbstractValue> {
         match self.locals.get(&local) {
-            Some(id) => Ok(AbstractValue::Reference(*id)), // leverages local-safety
+            Some(id) => {
+                let id = *id;
+                let new_id = self
+                    .borrow_set
+                    .make_copy((), id, self.borrow_set.is_mutable(id));
+                self.borrow_set.release(id);
+                Ok(AbstractValue::Reference(new_id))
+            }
             None if self.is_local_borrowed(local) => {
                 Err(self.error(StatusCode::MOVELOC_EXISTS_BORROW_ERROR, offset))
             }
@@ -304,28 +267,18 @@ impl AbstractState {
         Ok(AbstractValue::Reference(frozen_id))
     }
 
-    pub fn read_ref(&mut self, offset: CodeOffset, id: RefID) -> PartialVMResult<AbstractValue> {
-        if !self.is_readable(id, None) {
-            return Err(self.error(StatusCode::READREF_EXISTS_MUTABLE_BORROW_ERROR, offset));
-        }
-
+    pub fn read_ref(&mut self, _offset: CodeOffset, id: RefID) -> PartialVMResult<AbstractValue> {
         self.borrow_set.release(id);
         Ok(AbstractValue::NonReference)
     }
 
     pub fn comparison(
         &mut self,
-        offset: CodeOffset,
+        _offset: CodeOffset,
         v1: AbstractValue,
         v2: AbstractValue,
     ) -> PartialVMResult<AbstractValue> {
         match (v1, v2) {
-            (AbstractValue::Reference(id1), AbstractValue::Reference(id2))
-                if !self.is_readable(id1, None) || !self.is_readable(id2, None) =>
-            {
-                // TODO better error code
-                return Err(self.error(StatusCode::READREF_EXISTS_MUTABLE_BORROW_ERROR, offset));
-            }
             (AbstractValue::Reference(id1), AbstractValue::Reference(id2)) => {
                 self.borrow_set.release(id1);
                 self.borrow_set.release(id2)
@@ -423,7 +376,7 @@ impl AbstractState {
             .copied()
         {
             let is_transferable = self.is_writable(id)
-                && self.has_no_equals_in_set(id, &all_references_to_borrow_from);
+                && self.has_no_parents_in_set(id, &all_references_to_borrow_from);
             if !is_transferable {
                 return Err(self.error(StatusCode::CALL_BORROWED_MUTABLE_REFERENCE_ERROR, offset));
             }
@@ -494,7 +447,7 @@ impl AbstractState {
             .copied();
         for id in mutable_return_refs {
             let is_transferable =
-                self.is_writable(id) && self.has_no_equals_in_set(id, &all_return_refs);
+                self.is_writable(id) && self.has_no_parents_in_set(id, &all_return_refs);
             if !is_transferable {
                 return Err(self.error(StatusCode::RET_BORROWED_MUTABLE_REFERENCE_ERROR, offset));
             }
@@ -551,7 +504,10 @@ impl AbstractDomain for AbstractState {
         let joined = Self::join_(self, state);
         checked_verify!(self.current_function == joined.current_function);
         checked_verify!(self.locals == joined.locals);
-        if self.borrow_set.is_covered_by(&joined.borrow_set) {
+        let locals_changed = self.locals.values().copied().any(|id| {
+            self.borrow_set.is_pinned_released(id) != joined.borrow_set.is_pinned_released(id)
+        });
+        if !locals_changed && self.borrow_set.is_covered_by(&joined.borrow_set) {
             JoinResult::Unchanged
         } else {
             *self = joined;

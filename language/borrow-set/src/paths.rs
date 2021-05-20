@@ -69,13 +69,13 @@ impl<Instr, Lbl> Path<Instr, Lbl> {
 
         let mut l_iter = self.0.iter();
         let mut r_iter = rhs.0.iter();
-        while let (Some(l), Some(r)) = (l_iter.next(), r_iter.next()) {
+        let mut cur_l = l_iter.next();
+        let mut cur_r = r_iter.next();
+        while let (Some(l), Some(r)) = (&cur_l, &cur_r) {
             match (l, r) {
                 // Equal cases, continue
-                (Offset::Labeled(lbl_l), Offset::Labeled(lbl_r)) if lbl_l == lbl_r => continue,
-                (Offset::Existential(ext_l), Offset::Existential(ext_r)) if ext_l == ext_r => {
-                    continue
-                }
+                (Offset::Labeled(lbl_l), Offset::Labeled(lbl_r)) if lbl_l == lbl_r => (),
+                (Offset::Existential(ext_l), Offset::Existential(ext_r)) if ext_l == ext_r => (),
 
                 // Two distinct non equal offsets, dissimilar
                 (l @ Offset::Existential(_), r @ Offset::Existential(_))
@@ -91,8 +91,10 @@ impl<Instr, Lbl> Path<Instr, Lbl> {
                     return Ordering::RightExtendsLeft(r)
                 }
             }
+            cur_l = l_iter.next();
+            cur_r = r_iter.next();
         }
-        match (l_iter.next(), r_iter.next()) {
+        match (cur_l, cur_r) {
             (Some(_), None) => Ordering::LeftExtendsRight,
             (None, None) => Ordering::Equal,
             (None, Some(r)) => Ordering::RightExtendsLeft(r),

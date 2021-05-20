@@ -28,6 +28,13 @@ pub struct Parents<Loc, Lbl: Ord> {
     pub labeled: BTreeMap<Lbl, BTreeMap<RefID, Loc>>,
 }
 
+pub struct QueryFilter<'a> {
+    /// only query over these refs
+    mask: Option<&'a BTreeSet<RefID>>,
+    /// only query over these mutable statuses
+    mutable: Option<bool>,
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct BorrowSet<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> {
     map: BTreeMap<RefID, Ref<Loc, Instr, Lbl>>,
@@ -54,6 +61,41 @@ impl<Loc, Lbl: Ord> Parents<Loc, Lbl> {
         } = self;
         equal.is_empty() && existential.is_empty() && labeled.is_empty()
     }
+}
+
+impl<'a> QueryFilter<'a> {
+    pub fn empty() -> Self {
+        QueryFilter {
+            mask: None,
+            mutable: None,
+        }
+    }
+
+    pub fn is_mutable(mut self, mutable: bool) -> Self {
+        self.mutable = Some(mutable);
+        self
+    }
+
+    pub fn candidates(mut self, candidates: &'a BTreeSet<RefID>) -> Self {
+        self.mask = Some(candidates);
+        self
+    }
+}
+
+macro_rules! filtered_iter {
+    ($set:expr, $filter:expr) => {{
+        let QueryFilter { mask, mutable } = $filter;
+        $set.map
+            .iter()
+            .filter(move |(id, ref_)| {
+                let satisfies_mutable = mutable
+                    .map(|mutable_filter| ref_.is_mutable() == mutable_filter)
+                    .unwrap_or(true);
+                let satisfies_mask = mask.as_ref().map(|mask| mask.contains(id)).unwrap_or(true);
+                satisfies_mutable && satisfies_mask
+            })
+            .map(|(id, ref_)| (*id, ref_))
+    }};
 }
 
 impl<Loc: Copy, Instr: Copy + Ord + std::fmt::Display, Lbl: Clone + Ord + std::fmt::Display>
@@ -173,19 +215,13 @@ impl<Loc: Copy, Instr: Copy + Ord + std::fmt::Display, Lbl: Clone + Ord + std::f
     // Query API
     //**********************************************************************************************
 
-    pub fn borrowed_by(&self, id: RefID, mutable_filter: Option<bool>) -> Conflicts<Loc, Lbl> {
+    pub fn borrowed_by(&self, id: RefID, filter: QueryFilter) -> Conflicts<Loc, Lbl> {
         let mut equal = BTreeSet::new();
         let mut existential = BTreeMap::new();
         let mut labeled = BTreeMap::new();
         for path in self.map[&id].paths() {
-            let filtered = self.map.iter().filter(|(other_id, other_ref)| {
-                id != **other_id
-                    && mutable_filter
-                        .map(|filter| filter == other_ref.is_mutable())
-                        .unwrap_or(true)
-            });
+            let filtered = filtered_iter!(self, filter).filter(|(other_id, _)| &id != other_id);
             for (other_id, other_ref) in filtered {
-                let other_id = *other_id;
                 for other_path in other_ref.paths() {
                     match path.compare(other_path) {
                         Ordering::Incomparable | Ordering::LeftExtendsRight => (),
@@ -214,19 +250,13 @@ impl<Loc: Copy, Instr: Copy + Ord + std::fmt::Display, Lbl: Clone + Ord + std::f
         }
     }
 
-    pub fn borrows_from(&self, id: RefID, mutable_filter: Option<bool>) -> Parents<Loc, Lbl> {
+    pub fn borrows_from(&self, id: RefID, filter: QueryFilter) -> Parents<Loc, Lbl> {
         let mut equal = BTreeSet::new();
         let mut existential = BTreeMap::new();
         let mut labeled = BTreeMap::new();
         for path in self.map[&id].paths() {
-            let filtered = self.map.iter().filter(|(other_id, other_ref)| {
-                id != **other_id
-                    && mutable_filter
-                        .map(|filter| filter == other_ref.is_mutable())
-                        .unwrap_or(true)
-            });
+            let filtered = filtered_iter!(self, filter).filter(|(other_id, _)| &id != other_id);
             for (other_id, other_ref) in filtered {
-                let other_id = *other_id;
                 for other_path in other_ref.paths() {
                     match other_path.compare(path) {
                         Ordering::Incomparable | Ordering::LeftExtendsRight => (),

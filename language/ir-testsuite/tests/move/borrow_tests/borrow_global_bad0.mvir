@@ -7,10 +7,10 @@ module A {
         let t_ref: &mut Self.T;
         sender = Signer.address_of(move(account));
         t_ref = borrow_global_mut<T>(copy(sender));
+        // used to be not allowed as the global was still borrowed
         t_ref = borrow_global_mut<T>(move(sender));
         _ = move(t_ref);
         return;
     }
 }
-
-// check: GLOBAL_REFERENCE_ERROR
+// check: Success
