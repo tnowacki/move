@@ -319,14 +319,6 @@ impl<Loc: Copy, Instr: Copy + Ord + std::fmt::Display, Lbl: Clone + Ord + std::f
     //**********************************************************************************************
 
     pub fn is_covered_by(&self, other: &Self) -> bool {
-        self.unmatched_paths(other).is_empty()
-    }
-
-    fn unmatched_paths<'a>(
-        &self,
-        other: &'a Self,
-    ) -> BTreeMap<RefID, BTreeSet<&'a BorrowPath<Loc, Instr, Lbl>>> {
-        let mut unmatched = BTreeMap::new();
         for (id, other_ref) in &other.map {
             let self_ref = &self.map[id];
             let self_paths = self_ref.paths();
@@ -334,22 +326,18 @@ impl<Loc: Copy, Instr: Copy + Ord + std::fmt::Display, Lbl: Clone + Ord + std::f
                 // Otherwise, check if there is any path in self s.t. the other path is an extension
                 // of it
                 // In other words, does there exist a path in self that covers the other path
-                if self_paths.iter().any(|self_path| {
+                let other_path_is_covered = self_paths.iter().any(|self_path| {
                     matches!(
                         self_path.compare(other_path),
                         Ordering::Equal | Ordering::RightExtendsLeft(_)
                     )
-                }) {
-                    continue;
+                });
+                if !other_path_is_covered {
+                    return false;
                 }
-
-                unmatched
-                    .entry(*id)
-                    .or_insert_with(BTreeSet::new)
-                    .insert(other_path);
             }
         }
-        unmatched
+        return true;
     }
 
     pub fn join(&self, other: &Self) -> Self {
@@ -361,12 +349,12 @@ impl<Loc: Copy, Instr: Copy + Ord + std::fmt::Display, Lbl: Clone + Ord + std::f
         let mut joined = self.clone();
         joined.next_id = joined.map.len();
         assert!(joined.map.keys().all(|id| id.0 < joined.next_id));
-        for (id, unmatched_borrowed_by) in self.unmatched_paths(other) {
+        for (id, ref_) in &other.map {
             joined
                 .map
                 .get_mut(&id)
                 .unwrap()
-                .add_paths(unmatched_borrowed_by.into_iter().cloned())
+                .add_paths(ref_.paths().iter().cloned())
         }
         joined
     }

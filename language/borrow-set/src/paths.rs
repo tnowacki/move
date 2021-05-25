@@ -73,15 +73,25 @@ impl<Instr, Lbl> Path<Instr, Lbl> {
         let mut cur_r = r_iter.next();
         while let (Some(l), Some(r)) = (&cur_l, &cur_r) {
             match (l, r) {
-                // Equal cases, continue
-                (Offset::Labeled(lbl_l), Offset::Labeled(lbl_r)) if lbl_l == lbl_r => (),
-                (Offset::Existential(ext_l), Offset::Existential(ext_r)) if ext_l == ext_r => (),
+                (Offset::Labeled(lbl_l), Offset::Labeled(lbl_r)) => {
+                    if lbl_l == lbl_r {
+                        // Equal labels, continue
+                        ()
+                    } else {
+                        // Not equal labels, incomparable
+                        return Ordering::Incomparable;
+                    }
+                }
 
-                // Two distinct non equal offsets, dissimilar
-                (l @ Offset::Existential(_), r @ Offset::Existential(_))
-                | (l @ Offset::Labeled(_), r @ Offset::Labeled(_)) => {
-                    assert!(l != r);
-                    return Ordering::Incomparable;
+                (Offset::Existential((instr_l, num_l)), Offset::Existential((instr_r, num_r))) => {
+                    match (instr_l == instr_r, num_l == num_r) {
+                        // The exact same existential, continue,
+                        (true, true) => (),
+                        // Same instruction, different return values, incomparable
+                        (true, false) => return Ordering::Incomparable,
+                        // Different instructions, possible right extends left
+                        (false, _) => return Ordering::RightExtendsLeft(r),
+                    }
                 }
 
                 // An existential is pessimistically extended by anything and extends anything
