@@ -140,6 +140,11 @@ impl AbstractState {
         )
     }
 
+    pub(crate) fn display(&self) {
+        self.borrow_set.display();
+        println!()
+    }
+
     //**********************************************************************************************
     // Core Predicates
     //**********************************************************************************************
@@ -292,6 +297,7 @@ impl AbstractState {
     }
 
     pub fn write_ref(&mut self, offset: CodeOffset, id: RefID) -> PartialVMResult<()> {
+        self.display();
         if !self.is_writable(id) {
             return Err(self.error(StatusCode::WRITEREF_EXISTS_BORROW_ERROR, offset));
         }

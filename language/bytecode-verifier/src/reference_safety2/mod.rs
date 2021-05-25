@@ -51,6 +51,7 @@ pub(crate) fn verify<'a>(
     function_view: &FunctionView,
     name_def_map: &'a HashMap<IdentifierIndex, FunctionDefinitionIndex>,
 ) -> PartialVMResult<()> {
+    dbg!(resolver.self_id());
     let initial_state = AbstractState::new(function_view);
 
     let mut verifier = ReferenceSafetyAnalysis::new(resolver, function_view, name_def_map);

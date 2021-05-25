@@ -1,0 +1,21 @@
+module M {
+    struct X has drop { f: u64 }
+    struct S has drop { x: Self.X }
+    t(cond: bool) {
+        let s1: Self.S;
+        let s2: Self.S;
+        let imm: &u64;
+        let mut_: &mut Self.X;
+        s1 = S { x: X { f: 0 } };
+        s2 = S { x: X { f: 0 } };
+        if (move(cond)) {
+            imm = &(&(&s1).x).f;
+            mut_ = &mut (&mut s2).x;
+        } else {
+            imm = &(&(&s2).x).f;
+            mut_ = &mut (&mut s1).x;
+        }
+        *move(mut_) = X { f: 1 };
+        return;
+    }
+}
