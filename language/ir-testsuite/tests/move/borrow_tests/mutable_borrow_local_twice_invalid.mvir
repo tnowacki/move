@@ -6,10 +6,10 @@ module M {
         a = 0;
         r1 = &mut a;
         r2 = &mut a;
-        // writes among equal refs now allowed
         *move(r2) = 2;
         *move(r1) = 1;
         return;
     }
 }
-// check: Success
+
+// check: WRITEREF_EXISTS_BORROW_ERROR

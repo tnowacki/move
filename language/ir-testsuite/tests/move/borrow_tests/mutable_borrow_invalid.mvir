@@ -11,13 +11,13 @@ module M {
             x = &mut copy(root).g;
         }
 
-        // used to be invalid due to x
+        // INVALID
         *(&mut copy(root).f) = 1;
 
         return;
     }
 }
-// check: Success
+// check: WRITEREF_EXISTS_BORROW_ERROR
 
 //! new-transaction
 module M2 {
@@ -33,6 +33,7 @@ module M2 {
             x = &mut copy(root).g;
         }
 
+        // INVALID
         Self.foo(move(x), &mut copy(root).f);
 
         return;

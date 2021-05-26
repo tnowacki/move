@@ -23,7 +23,6 @@ module A {
         ref1 = &mut move(this).value;
         ref2 = copy(ref1);
         b2 = B.new(3);
-        // used to fail because of ref2
         *move(ref1) = move(b2);
 
         x = *move(ref2);
@@ -31,4 +30,4 @@ module A {
         return;
     }
 }
-// check: Success
+// check: WRITEREF_EXISTS_BORROW_ERROR

@@ -7,7 +7,6 @@ module Tester {
         x = 0;
         y = 0;
         r1 = Self.foo(&mut x, &mut y);
-        // copy used to fail because of r1
         _ = copy(x);
         return;
     }
@@ -17,4 +16,4 @@ module Tester {
     }
 }
 
-// check: Success
+// check: COPYLOC_EXISTS_BORROW_ERROR

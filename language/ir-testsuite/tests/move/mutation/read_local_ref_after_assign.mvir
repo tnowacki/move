@@ -1,3 +1,4 @@
+// check: READREF_EXISTS_MUTABLE_BORROW_ERROR
 
 main() {
     let v: u64;
@@ -7,12 +8,9 @@ main() {
     v = 5;
     read_ref = &mut v;
     assign_ref = copy(read_ref);
-    // read used to fail because of read_ref
     *copy(assign_ref) = 0;
     assert(*copy(assign_ref) == 0, 42);
     no = *move(read_ref);
     _ = move(assign_ref);
     return;
 }
-
-// check: Success

@@ -27,7 +27,6 @@ module A {
         return Coin { u: move(u1) }, Coin { u: move(u2) };
     }
 }
-// check: Success
 
 //! new-transaction
 //! sender: bob
@@ -45,7 +44,7 @@ module Tester {
         return move(p1) == move(p2);
     }
 }
-// check: Success
+// check: GLOBAL_REFERENCE_ERROR
 
 //! new-transaction
 //! sender: bob
@@ -62,7 +61,7 @@ module Tester {
         return move(p1) == move(p2);
     }
 }
-// check: Success
+// check: GLOBAL_REFERENCE_ERROR
 
 //! new-transaction
 //! sender: bob
@@ -83,7 +82,7 @@ module Tester {
         return move(c1) == move(c2);
     }
 }
-// check: Success
+// check: GLOBAL_REFERENCE_ERROR
 
 //! new-transaction
 //! sender: bob

@@ -11,8 +11,7 @@ module Tester {
         let returned_ref: &u64;
 
         returned_ref = Self.bump_and_give(copy(x_ref));
-        // Used to be an error because one could not mutably borrow from `x_ref` it is being
-        // borrowed by `returned_ref`
+        // ERROR Cannot mutably borrow from `x_ref` it is being borrowed by `returned_ref`
         assert(*copy(returned_ref) == *freeze(&mut move(x_ref).f) + 1, 42);
         return move(returned_ref);
     }
@@ -28,4 +27,4 @@ module Tester {
     }
 }
 
-// check: Success
+// check: BORROWFIELD_EXISTS_MUTABLE_BORROW_ERROR

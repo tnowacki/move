@@ -79,7 +79,7 @@ impl std::fmt::Display for Label {
 }
 
 /// AbstractState is the analysis state over which abstract interpretation is performed.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub(crate) struct AbstractState {
     current_function: Option<FunctionDefinitionIndex>,
     locals: BTreeMap<LocalIndex, RefID>,
@@ -140,6 +140,7 @@ impl AbstractState {
         )
     }
 
+    #[allow(dead_code)]
     pub(crate) fn display(&self) {
         self.borrow_set.display();
         println!()
@@ -512,7 +513,7 @@ impl AbstractDomain for AbstractState {
         let locals_changed = self.locals.values().copied().any(|id| {
             self.borrow_set.is_pinned_released(id) != joined.borrow_set.is_pinned_released(id)
         });
-        if !locals_changed && self.borrow_set.is_covered_by(&joined.borrow_set) {
+        if !locals_changed && self.borrow_set.covers(&joined.borrow_set) {
             JoinResult::Unchanged
         } else {
             *self = joined;

@@ -8,11 +8,11 @@ module A {
         let sender: address;
         sender = Signer.address_of(move(account));
         x = borrow_global_mut<T>(move(sender));
-        // used to fail because the global was still borrowed
         y = borrow_global_mut<T>(move(addr));
         _ = move(x);
         _ = move(y);
         return;
     }
 }
-// check: Success
+
+// check: GLOBAL_REFERENCE_ERROR

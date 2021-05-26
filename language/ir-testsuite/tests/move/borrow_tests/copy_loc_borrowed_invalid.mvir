@@ -5,10 +5,9 @@ module Tester {
 
         x = 0;
         r1 = &mut x;
-        // copy used to fail because of r1
         _ = copy(x);
         return;
     }
 }
 
-// check: Success
+// check: COPYLOC_EXISTS_BORROW_ERROR

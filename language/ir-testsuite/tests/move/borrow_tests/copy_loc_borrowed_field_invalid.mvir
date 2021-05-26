@@ -8,12 +8,10 @@ module Tester {
 
         x = T { f: 0 };
         r1 = &mut (&mut x).f;
-        // copy used to be invalid due to mut borrow
         T { f: f } = copy(x);
-        _ = move(r1);
         T { f: f } = move(x);
         return;
     }
 }
 
-// check: Success
+// check: COPYLOC_EXISTS_BORROW_ERROR
