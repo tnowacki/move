@@ -340,6 +340,36 @@ impl<Loc: Copy, Instr: Copy + Ord + std::fmt::Display, Lbl: Clone + Ord + std::f
         return true;
     }
 
+    fn unmatched_paths<'a>(
+        &self,
+        other: &'a Self,
+    ) -> BTreeMap<RefID, BTreeSet<&'a BorrowPath<Loc, Instr, Lbl>>> {
+        let mut unmatched = BTreeMap::new();
+        for (id, other_ref) in &other.map {
+            let self_ref = &self.map[id];
+            let self_paths = self_ref.paths();
+            for other_path in other_ref.paths() {
+                // Otherwise, check if there is any path in self s.t. the other path is an extension
+                // of it
+                // In other words, does there exist a path in self that covers the other path
+                if self_paths.iter().any(|self_path| {
+                    matches!(
+                        self_path.compare(other_path),
+                        Ordering::Equal | Ordering::RightExtendsLeft(_)
+                    )
+                }) {
+                    continue;
+                }
+
+                unmatched
+                    .entry(*id)
+                    .or_insert_with(BTreeSet::new)
+                    .insert(other_path);
+            }
+        }
+        unmatched
+    }
+
     pub fn join(&self, other: &Self) -> Self {
         debug_checked_precondition!(self.map.keys().all(|id| other.map.contains_key(id)));
         debug_checked_precondition!(other.map.keys().all(|id| self.map.contains_key(id)));
@@ -349,12 +379,12 @@ impl<Loc: Copy, Instr: Copy + Ord + std::fmt::Display, Lbl: Clone + Ord + std::f
         let mut joined = self.clone();
         joined.next_id = joined.map.len();
         assert!(joined.map.keys().all(|id| id.0 < joined.next_id));
-        for (id, ref_) in &other.map {
+        for (id, unmatched_borrowed_by) in self.unmatched_paths(other) {
             joined
                 .map
                 .get_mut(&id)
                 .unwrap()
-                .add_paths(ref_.paths().iter().cloned())
+                .add_paths(unmatched_borrowed_by.into_iter().cloned())
         }
         joined
     }
