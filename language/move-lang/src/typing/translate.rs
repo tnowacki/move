@@ -16,6 +16,7 @@ use crate::{
     FullyCompiledProgram,
 };
 use move_ir_types::location::*;
+use move_symbol_pool::Symbol;
 use std::collections::{BTreeMap, VecDeque};
 
 //**************************************************************************************************
@@ -88,8 +89,8 @@ fn module(
 
 fn scripts(
     context: &mut Context,
-    nscripts: BTreeMap<String, N::Script>,
-) -> BTreeMap<String, T::Script> {
+    nscripts: BTreeMap<Symbol, N::Script>,
+) -> BTreeMap<Symbol, T::Script> {
     nscripts
         .into_iter()
         .map(|(n, s)| (n, script(context, s)))
@@ -108,7 +109,7 @@ fn script(context: &mut Context, nscript: N::Script) -> T::Script {
     } = nscript;
     context.bind_script_constants(&nconstants);
     let constants = nconstants.map(|name, c| constant(context, name, c));
-    let function = function(context, function_name.clone(), nfunction, true);
+    let function = function(context, function_name, nfunction, true);
     context.current_script_constants = None;
     T::Script {
         attributes,
@@ -229,7 +230,7 @@ fn function_signature(context: &mut Context, sig: &N::FunctionSignature) {
             "Invalid parameter type",
             param_ty.clone(),
         );
-        if let Err((param, prev_loc)) = declared.add(param.clone(), ()) {
+        if let Err((param, prev_loc)) = declared.add(*param, ()) {
             let msg = format!("Duplicate parameter with name '{}'", param);
             context.env.add_diag(diag!(
                 Declarations::DuplicateItem,
@@ -237,7 +238,7 @@ fn function_signature(context: &mut Context, sig: &N::FunctionSignature) {
                 (prev_loc, "Previously declared here"),
             ))
         }
-        context.declare_local(param.clone(), Some(param_ty));
+        context.declare_local(*param, Some(param_ty));
     }
     context.return_type = Some(core::instantiate(context, sig.return_type.clone()));
     core::solve_constraints(context);
@@ -1494,14 +1495,14 @@ fn lvalue_expected_types(_context: &mut Context, sp!(loc, b_): &T::LValue) -> Op
         L::Ignore => None,
         L::Var(_, ty) => Some(*ty.clone()),
         L::BorrowUnpack(mut_, m, s, tys, _) => {
-            let tn = sp(loc, N::TypeName_::ModuleType(m.clone(), s.clone()));
+            let tn = sp(loc, N::TypeName_::ModuleType(*m, *s));
             Some(sp(
                 loc,
                 Ref(*mut_, Box::new(sp(loc, Apply(None, tn, tys.clone())))),
             ))
         }
         L::Unpack(m, s, tys, _) => {
-            let tn = sp(loc, N::TypeName_::ModuleType(m.clone(), s.clone()));
+            let tn = sp(loc, N::TypeName_::ModuleType(*m, *s));
             Some(sp(loc, Apply(None, tn, tys.clone())))
         }
     }
@@ -1607,7 +1608,7 @@ fn lvalue(
         NL::Var(var) => {
             let var_ty = match case {
                 C::Bind => {
-                    context.declare_local(var.clone(), Some(ty.clone()));
+                    context.declare_local(var, Some(ty.clone()));
                     ty
                 }
                 C::Assign => {
@@ -1622,7 +1623,7 @@ fn lvalue(
                     var_ty
                 }
             };
-            if let Err((var, prev_loc)) = seen_locals.add(var.clone(), ()) {
+            if let Err((var, prev_loc)) = seen_locals.add(var, ()) {
                 let (primary, secondary) = match case {
                     C::Bind => {
                         let msg = format!(
@@ -1944,7 +1945,7 @@ fn exp_dotted_to_owned_value(
             let name = match &edot {
                 sp!(_, ExpDotted_::Exp(_)) => panic!("ICE covered above"),
                 sp!(_, ExpDotted_::TmpBorrow(_, _)) => panic!("ICE why is this here?"),
-                sp!(_, ExpDotted_::Dot(_, name, _)) => name.clone(),
+                sp!(_, ExpDotted_::Dot(_, name, _)) => *name,
             };
             let eborrow = exp_dotted_to_borrow(context, eloc, false, edot);
             context.add_implicit_copyable_constraint(

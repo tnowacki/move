@@ -6,6 +6,7 @@ use crate::{
     diagnostics::{Diagnostic, Diagnostics},
 };
 use move_ir_types::location::*;
+use move_symbol_pool::Symbol;
 use petgraph::{algo::astar as petgraph_astar, graphmap::DiGraphMap};
 use std::{
     convert::TryFrom,
@@ -166,26 +167,26 @@ pub trait TName: Eq + Ord + Clone {
 }
 
 pub trait Identifier {
-    fn value(&self) -> &str;
+    fn value(&self) -> Symbol;
     fn loc(&self) -> Loc;
 }
 
 // TODO maybe we should intern these strings somehow
-pub type Name = Spanned<String>;
+pub type Name = Spanned<Symbol>;
 
 impl TName for Name {
-    type Key = String;
+    type Key = Symbol;
     type Loc = Loc;
 
-    fn drop_loc(self) -> (Loc, String) {
+    fn drop_loc(self) -> (Loc, Symbol) {
         (self.loc, self.value)
     }
 
-    fn add_loc(loc: Loc, key: String) -> Self {
+    fn add_loc(loc: Loc, key: Symbol) -> Self {
         sp(loc, key)
     }
 
-    fn borrow(&self) -> (&Loc, &String) {
+    fn borrow(&self) -> (&Loc, &Symbol) {
         (&self.loc, &self.value)
     }
 }

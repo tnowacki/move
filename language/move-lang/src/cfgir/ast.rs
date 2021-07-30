@@ -11,6 +11,7 @@ use crate::{
 };
 use move_core_types::value::MoveValue;
 use move_ir_types::location::*;
+use move_symbol_pool::Symbol;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 // HLIR + Unstructured Control Flow + CFG
@@ -24,7 +25,7 @@ pub struct Program {
     // Map of known named address values. Not all addresses will be present
     pub addresses: UniqueMap<Name, AddressBytes>,
     pub modules: UniqueMap<ModuleIdent, ModuleDefinition>,
-    pub scripts: BTreeMap<String, Script>,
+    pub scripts: BTreeMap<Symbol, Script>,
 }
 
 //**************************************************************************************************
@@ -217,7 +218,7 @@ impl AstDebug for Script {
             cdef.ast_debug(w);
             w.new_line();
         }
-        (function_name.clone(), function).ast_debug(w);
+        (*function_name, function).ast_debug(w);
     }
 }
 

@@ -255,7 +255,7 @@ fn collect_related_modules_recursive<'a>(
         visited_addresses.insert(&n.value);
     }
     collect_used_addresses(&mdef.used_addresses, visited_addresses);
-    visited_modules.insert(mident.clone());
+    visited_modules.insert(*mident);
     for (_, next_mident, _) in &mdef.immediate_neighbors {
         collect_related_modules_recursive(next_mident, modules, visited_addresses, visited_modules);
     }
@@ -441,7 +441,7 @@ fn run_spec_checker(env: &mut GlobalEnv, units: Vec<CompiledUnit>, mut eprog: E:
     let named_address_mapping = eprog
         .addresses
         .iter()
-        .filter_map(|(_, n, addr_bytes_opt)| addr_bytes_opt.map(|ab| (n.clone(), ab.value)))
+        .filter_map(|(_, n, addr_bytes_opt)| addr_bytes_opt.map(|ab| (*n, ab.value)))
         .collect();
     let mut builder = ModelBuilder::new(env, named_address_mapping);
     // Merge the compiled units with the expanded program, preserving the order of the compiled
@@ -505,12 +505,10 @@ fn run_spec_checker(env: &mut GlobalEnv, units: Vec<CompiledUnit>, mut eprog: E:
                     let address = Address::Anonymous(sp(loc, AddressBytes::DEFAULT_ERROR_BYTES));
                     let ident = sp(
                         loc,
-                        ModuleIdent_::new(address, ParserModuleName(function_name.0.clone())),
+                        ModuleIdent_::new(address, ParserModuleName(function_name.0)),
                     );
                     let mut function_infos = UniqueMap::new();
-                    function_infos
-                        .add(function_name.clone(), function_info)
-                        .unwrap();
+                    function_infos.add(function_name, function_info).unwrap();
                     // Construct a pseudo module definition.
                     let mut functions = UniqueMap::new();
                     functions.add(function_name, function).unwrap();

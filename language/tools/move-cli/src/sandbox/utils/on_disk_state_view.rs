@@ -19,6 +19,7 @@ use move_core_types::{
     vm_status::StatusCode,
 };
 use move_lang::MOVE_COMPILED_INTERFACES_DIR;
+use move_symbol_pool::Symbol;
 use move_vm_runtime::data_cache::MoveStorage;
 use resource_viewer::{AnnotatedMoveStruct, AnnotatedMoveValue, MoveValueAnnotator};
 use serde::{Deserialize, Serialize};
@@ -38,7 +39,7 @@ pub const MODULES_DIR: &str = "modules";
 /// subdirectory of `DEFAULT_STORAGE_DIR`/<addr> where events are stored
 pub const EVENTS_DIR: &str = "events";
 
-pub type ModuleIdWithNamedAddress = (ModuleId, Option<String>);
+pub type ModuleIdWithNamedAddress = (ModuleId, Option<Symbol>);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct InterfaceFilesMetadata {
@@ -413,7 +414,8 @@ impl OnDiskStateView {
         let mut is_empty = true;
         for ((module_id, address_name_opt), module_bytes) in modules {
             self.save_module(module_id, module_bytes)?;
-            named_address_mapping_changes.insert(module_id.clone(), address_name_opt.clone());
+            named_address_mapping_changes
+                .insert(module_id.clone(), address_name_opt.map(|n| n.to_string()));
             is_empty = false;
         }
 

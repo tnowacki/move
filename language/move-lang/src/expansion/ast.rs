@@ -11,6 +11,7 @@ use crate::{
     shared::{ast_debug::*, unique_map::UniqueMap, unique_set::UniqueSet, *},
 };
 use move_ir_types::location::*;
+use move_symbol_pool::Symbol;
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
     fmt,
@@ -26,7 +27,7 @@ pub struct Program {
     // Map of declared named addresses, and their values if specified
     pub addresses: UniqueMap<Name, Option<Spanned<AddressBytes>>>,
     pub modules: UniqueMap<ModuleIdent, ModuleDefinition>,
-    pub scripts: BTreeMap<String, Script>,
+    pub scripts: BTreeMap<Symbol, Script>,
 }
 
 //**************************************************************************************************
@@ -78,12 +79,12 @@ pub struct Script {
 // Modules
 //**************************************************************************************************
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Address {
     Anonymous(Spanned<AddressBytes>),
     Named(Name),
 }
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ModuleIdent_ {
     pub address: Address,
     pub module: ModuleName,
@@ -806,7 +807,7 @@ impl AstDebug for Script {
             cdef.ast_debug(w);
             w.new_line();
         }
-        (function_name.clone(), function).ast_debug(w);
+        (*function_name, function).ast_debug(w);
         for spec in specs {
             spec.ast_debug(w);
             w.new_line();

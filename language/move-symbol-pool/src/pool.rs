@@ -69,7 +69,7 @@ impl Pool {
     /// which top-level bucket contains an entry corresponding to the string,
     /// as well as a scalar value that can be used to quickly check whether
     /// two strings are not equal.
-    fn hash(string: &str) -> u64 {
+    fn hash(string: &Cow<str>) -> u64 {
         let mut hasher = DefaultHasher::new();
         string.hash(&mut hasher);
         hasher.finish()

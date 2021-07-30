@@ -36,7 +36,7 @@ impl Context {
         self.struct_neighbors
             .entry(self.current_struct.clone().unwrap())
             .or_insert_with(BTreeMap::new)
-            .insert(sname.clone(), loc);
+            .insert(*sname, loc);
     }
 
     fn struct_graph(&self) -> DiGraphMap<&StructName, ()> {

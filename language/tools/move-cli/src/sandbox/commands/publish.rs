@@ -61,7 +61,7 @@ pub fn publish(
             .iter()
             .map(|(ident, module)| {
                 let id = module.self_id();
-                (id, ident.address_name.as_ref().map(|n| n.value.clone()))
+                (id, ident.address_name.as_ref().map(|n| n.value))
             })
             .collect();
 
@@ -90,7 +90,7 @@ pub fn publish(
             Some(ordering) => {
                 let module_map: BTreeMap<_, _> = modules
                     .into_iter()
-                    .map(|(ident, m)| (ident.module_name.0.value, m))
+                    .map(|(ident, m)| (ident.module_name.0.value.to_string(), m))
                     .collect();
 
                 let mut sender_opt = None;
@@ -136,7 +136,7 @@ pub fn publish(
             let modules: Vec<_> = changeset
                 .into_modules()
                 .map(|(module_id, blob_opt)| {
-                    let addr_name = id_to_ident[&module_id].clone();
+                    let addr_name = id_to_ident[&module_id];
                     let ident = (module_id, addr_name);
                     (ident, blob_opt.expect("must be non-deletion"))
                 })

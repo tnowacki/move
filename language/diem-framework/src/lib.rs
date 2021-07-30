@@ -9,6 +9,7 @@ use move_command_line_common::files::{
     extension_equals, find_filenames, MOVE_COMPILED_EXTENSION, MOVE_EXTENSION,
 };
 use move_lang::{compiled_unit::CompiledUnit, Compiler};
+use move_symbol_pool::Symbol;
 use once_cell::sync::Lazy;
 use sha2::{Digest, Sha256};
 use std::{
@@ -86,7 +87,7 @@ pub fn stdlib_bytecode_files() -> Vec<String> {
     res
 }
 
-pub(crate) fn build_stdlib() -> BTreeMap<String, CompiledModule> {
+pub(crate) fn build_stdlib() -> BTreeMap<Symbol, CompiledModule> {
     let (_files, compiled_units) = Compiler::new(&diem_stdlib_files(), &[])
         .build_and_report()
         .unwrap();

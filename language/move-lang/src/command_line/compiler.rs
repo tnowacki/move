@@ -519,7 +519,7 @@ pub fn output_compiled_units(
         std::fs::create_dir_all(dir_path!(out_dir, SCRIPT_SUB_DIR))?;
     }
     for unit in scripts {
-        let mut path = dir_path!(out_dir, SCRIPT_SUB_DIR, unit.name());
+        let mut path = dir_path!(out_dir, SCRIPT_SUB_DIR, unit.name().as_str());
         emit_unit!(path, unit);
     }
 
