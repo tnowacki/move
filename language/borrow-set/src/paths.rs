@@ -83,21 +83,13 @@ impl<Instr, Lbl> Path<Instr, Lbl> {
                     }
                 }
 
-                (Offset::Existential((instr_l, num_l)), Offset::Existential((instr_r, num_r))) => {
-                    match (instr_l == instr_r, num_l == num_r) {
-                        // The exact same existential, continue,
-                        (true, true) => (),
-                        // Same instruction, different return values, incomparable
-                        (true, false) => return Ordering::Incomparable,
-                        // Different instructions, possible right extends left
-                        (false, _) => return Ordering::RightExtendsLeft(r),
-                    }
-                }
-
                 // An existential is pessimistically extended by anything and extends anything
                 // It is equivalent to '.*' in regex terms
-                (Offset::Existential(_), r @ Offset::Labeled(_))
-                | (Offset::Labeled(_), r @ Offset::Existential(_)) => {
+                (Offset::Existential(_), r @ Offset::Existential(_))
+                | (Offset::Existential(_), r @ Offset::Labeled(_)) => {
+                    return Ordering::RightExtendsLeft(r)
+                }
+                (Offset::Labeled(_), r @ Offset::Existential(_)) => {
                     return Ordering::RightExtendsLeft(r)
                 }
             }
