@@ -3,7 +3,6 @@
 
 #![forbid(unsafe_code)]
 
-mod map;
 mod paths;
 pub mod references;
 pub mod set;

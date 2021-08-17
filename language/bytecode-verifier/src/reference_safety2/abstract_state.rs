@@ -511,7 +511,7 @@ impl AbstractDomain for AbstractState {
         let locals_changed = self.locals.values().copied().any(|id| {
             self.borrow_set.is_pinned_released(id) != joined.borrow_set.is_pinned_released(id)
         });
-        if !locals_changed && self.borrow_set.covers(&joined.borrow_set) {
+        if !locals_changed && self.borrow_set.is_covered_by(&joined.borrow_set) {
             JoinResult::Unchanged
         } else {
             *self = joined;
