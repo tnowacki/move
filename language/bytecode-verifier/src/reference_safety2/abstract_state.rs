@@ -22,7 +22,7 @@ use std::{
     iter,
 };
 
-type BorrowSet = borrow_set::set::BorrowSet<(), CodeOffset, Label>;
+type BorrowSet = borrow_set::set::BorrowSet<(), Label>;
 
 /// AbstractValue represents a reference or a non reference value, both on the stack and stored
 /// in a local
@@ -332,11 +332,11 @@ impl AbstractState {
 
     pub fn vector_element_borrow(
         &mut self,
-        offset: CodeOffset,
+        _offset: CodeOffset,
         mut_: bool,
         id: RefID,
     ) -> PartialVMResult<AbstractValue> {
-        let new_id = self.borrow_set.extend_by_unknown(id, (), mut_, offset, 0);
+        let new_id = self.borrow_set.extend_by_unknown(id, (), mut_);
         self.borrow_set.release(id);
         Ok(AbstractValue::Reference(new_id))
     }
@@ -410,15 +410,12 @@ impl AbstractState {
         let return_values = return_
             .0
             .iter()
-            .enumerate()
-            .map(|(return_val_idx, return_type)| match return_type {
+            .map(|return_type| match return_type {
                 SignatureToken::MutableReference(_) => {
                     let id = self.borrow_set.extend_by_unknown(
                         mutable_references_to_borrow_from.iter().copied(),
                         (),
                         true,
-                        offset,
-                        return_val_idx,
                     );
                     AbstractValue::Reference(id)
                 }
@@ -427,8 +424,6 @@ impl AbstractState {
                         all_references_to_borrow_from.iter().copied(),
                         (),
                         true,
-                        offset,
-                        return_val_idx,
                     );
                     AbstractValue::Reference(id)
                 }

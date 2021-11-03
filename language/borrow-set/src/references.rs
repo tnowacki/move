@@ -22,32 +22,32 @@ pub struct RefID(pub(crate) usize);
 /// Represents the borrow relationships and information for a node in the borrow graph, i.e
 /// for a single reference
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct Ref<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> {
+pub(crate) struct Ref<Loc: Copy, Lbl: Clone + Ord> {
     pinned: bool,
     /// true if mutable, false otherwise
     mutable: bool,
     /// Set of paths defining possible locations for this reference
-    paths: BTreeSet<BorrowPath<Loc, Instr, Lbl>>,
+    paths: BTreeSet<BorrowPath<Loc, Lbl>>,
 }
 
 #[derive(Clone)]
 /// A path + a location where it was added
-pub(crate) struct BorrowPath<Loc, Instr, Lbl> {
+pub(crate) struct BorrowPath<Loc, Lbl> {
     /// The location
     pub(crate) loc: Loc,
     /// The actual path data
-    pub(crate) path: Path<Instr, Lbl>,
+    pub(crate) path: Path<Lbl>,
 }
 
 //**************************************************************************************************
 // Impls
 //**************************************************************************************************
 
-impl<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> Ref<Loc, Instr, Lbl> {
+impl<Loc: Copy, Lbl: Clone + Ord> Ref<Loc, Lbl> {
     pub(crate) fn pinned(mutable: bool, init_offset: Option<(Loc, Lbl)>) -> Self {
         let paths = match init_offset {
             Some((loc, lbl)) => {
-                BTreeSet::from_iter(vec![BorrowPath::initial(loc, Offset::Labeled(lbl))])
+                BTreeSet::from_iter(vec![BorrowPath::initial(loc, Extension::Label(lbl))])
             }
             None => BTreeSet::new(),
         };
@@ -58,7 +58,7 @@ impl<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> Ref<Loc, Instr, Lbl> {
         }
     }
 
-    pub(crate) fn new(mutable: bool, paths: BTreeSet<BorrowPath<Loc, Instr, Lbl>>) -> Self {
+    pub(crate) fn new(mutable: bool, paths: BTreeSet<BorrowPath<Loc, Lbl>>) -> Self {
         Self {
             pinned: false,
             mutable,
@@ -75,7 +75,7 @@ impl<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> Ref<Loc, Instr, Lbl> {
         }
     }
 
-    pub(crate) fn copy_paths(&self, loc: Loc) -> BTreeSet<BorrowPath<Loc, Instr, Lbl>> {
+    pub(crate) fn copy_paths(&self, loc: Loc) -> BTreeSet<BorrowPath<Loc, Lbl>> {
         self.paths
             .iter()
             .map(|path| {
@@ -99,30 +99,31 @@ impl<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> Ref<Loc, Instr, Lbl> {
         self.paths = BTreeSet::new()
     }
 
-    pub(crate) fn paths(&self) -> &BTreeSet<BorrowPath<Loc, Instr, Lbl>> {
+    pub(crate) fn paths(&self) -> &BTreeSet<BorrowPath<Loc, Lbl>> {
         debug_checked_verify!(self.pinned || !self.paths.is_empty());
         &self.paths
     }
 
-    pub(crate) fn add_paths(
-        &mut self,
-        additional: impl IntoIterator<Item = BorrowPath<Loc, Instr, Lbl>>,
-    ) {
+    pub(crate) fn add_path(&mut self, additional: BorrowPath<Loc, Lbl>) {
+        let is_additional = self.paths.insert(additional);
+        assert!(is_additional);
+    }
+
+    pub(crate) fn add_paths(&mut self, additional: impl IntoIterator<Item = BorrowPath<Loc, Lbl>>) {
         self.paths.extend(additional)
     }
 }
 
-impl<Loc, Instr, Lbl> BorrowPath<Loc, Instr, Lbl> {
-    pub(crate) fn initial(loc: Loc, offset: Offset<Instr, Lbl>) -> Self {
+impl<Loc, Lbl> BorrowPath<Loc, Lbl> {
+    pub(crate) fn initial(loc: Loc, lbl: Extension<Lbl>) -> Self {
         Self {
             loc,
-            path: Path::initial(offset),
+            path: Path::initial(lbl),
         }
     }
 
-    pub(crate) fn extend(&self, loc: Loc, extension: Offset<Instr, Lbl>) -> Self
+    pub(crate) fn extend(&self, loc: Loc, extension: Extension<Lbl>) -> Self
     where
-        Instr: Copy,
         Lbl: Clone,
     {
         Self {
@@ -131,9 +132,8 @@ impl<Loc, Instr, Lbl> BorrowPath<Loc, Instr, Lbl> {
         }
     }
 
-    pub(crate) fn compare<'a>(&self, other: &'a Self) -> Ordering<'a, Instr, Lbl>
+    pub(crate) fn compare<'a>(&self, other: &'a Self) -> Ordering<'a, Lbl>
     where
-        Instr: Eq,
         Lbl: Eq,
     {
         self.path.compare(&other.path)
@@ -152,29 +152,27 @@ impl IntoIterator for RefID {
     }
 }
 
-impl<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> PartialEq for BorrowPath<Loc, Instr, Lbl> {
-    fn eq(&self, other: &BorrowPath<Loc, Instr, Lbl>) -> bool {
+impl<Loc: Copy, Lbl: Clone + Ord> PartialEq for BorrowPath<Loc, Lbl> {
+    fn eq(&self, other: &BorrowPath<Loc, Lbl>) -> bool {
         self.path == other.path
     }
 }
 
-impl<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> Eq for BorrowPath<Loc, Instr, Lbl> {}
+impl<Loc: Copy, Lbl: Clone + Ord> Eq for BorrowPath<Loc, Lbl> {}
 
-impl<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> PartialOrd for BorrowPath<Loc, Instr, Lbl> {
-    fn partial_cmp(&self, other: &BorrowPath<Loc, Instr, Lbl>) -> Option<cmp::Ordering> {
+impl<Loc: Copy, Lbl: Clone + Ord> PartialOrd for BorrowPath<Loc, Lbl> {
+    fn partial_cmp(&self, other: &BorrowPath<Loc, Lbl>) -> Option<cmp::Ordering> {
         self.path.partial_cmp(&other.path)
     }
 }
 
-impl<Loc: Copy, Instr: Copy + Ord, Lbl: Clone + Ord> Ord for BorrowPath<Loc, Instr, Lbl> {
-    fn cmp(&self, other: &BorrowPath<Loc, Instr, Lbl>) -> cmp::Ordering {
+impl<Loc: Copy, Lbl: Clone + Ord> Ord for BorrowPath<Loc, Lbl> {
+    fn cmp(&self, other: &BorrowPath<Loc, Lbl>) -> cmp::Ordering {
         self.path.cmp(&other.path)
     }
 }
 
-impl<Loc: Copy, Instr: Copy + Ord + Debug, Lbl: Clone + Ord + Debug> Debug
-    for BorrowPath<Loc, Instr, Lbl>
-{
+impl<Loc: Copy, Lbl: Clone + Ord + Debug> Debug for BorrowPath<Loc, Lbl> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.path.fmt(f)
     }

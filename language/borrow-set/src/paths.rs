@@ -2,57 +2,63 @@
 // SPDX-License-Identifier: Apache-2.0
 use mirai_annotations::debug_checked_precondition;
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Offset<Instr, Lbl> {
-    Labeled(Lbl),
-    Existential((Instr, usize)),
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Extension<Lbl> {
+    Label(Lbl),
+    Star,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct Path<Instr, Lbl>(pub(crate) Vec<Offset<Instr, Lbl>>);
+pub(crate) struct Path<Lbl> {
+    path: Vec<Lbl>,
+    ends_in_star: bool,
+}
 
-pub enum Ordering<'a, Instr, Lbl> {
+#[derive(Debug)]
+pub enum Ordering<'a, Lbl> {
     /// Could be dissimilar, e.g. x.f and x.g
-    /// Could be something else like, x.f.(exists p) and x.f
     Incomparable,
     /// lhs is an extension of rhs
     LeftExtendsRight,
     /// Exactly equal
     Equal,
     /// rhs is an extension of lhs
-    /// x.f and x.f.g yields `Extension(g)`
-    /// x.(exists p).g and x.f.g yields `Extension(f)`
-    /// x.f.g and x.(exists p) yields `Extension((exists p))`
-    RightExtendsLeft(&'a Offset<Instr, Lbl>),
+    RightExtendsLeft(Extension<&'a Lbl>),
 }
 
-impl<Instr, Lbl> Path<Instr, Lbl> {
-    pub fn initial(offset: Offset<Instr, Lbl>) -> Self {
-        Self(vec![offset])
+impl<Lbl> Path<Lbl> {
+    pub fn initial(ext: Extension<Lbl>) -> Self {
+        let (path, ends_in_star) = match ext {
+            Extension::Label(lbl) => (vec![lbl], false),
+            Extension::Star => (vec![], true),
+        };
+        Self { path, ends_in_star }
     }
 
-    pub fn extend(&self, extension: Offset<Instr, Lbl>) -> Self
+    pub fn extend(&self, extension: Extension<Lbl>) -> Self
     where
-        Instr: Copy,
         Lbl: Clone,
     {
         debug_checked_precondition!(self.satisfies_invariant());
-        let mut new_path = self.0.clone();
-        new_path.push(extension);
-        let np = Self(new_path);
-        debug_checked_precondition!(np.satisfies_invariant());
-        np
+        let mut new_path = self.clone();
+
+        match extension {
+            _ if self.ends_in_star => (),
+            Extension::Label(lbl) => new_path.path.push(lbl),
+            Extension::Star => new_path.ends_in_star = true,
+        }
+        debug_checked_precondition!(new_path.satisfies_invariant());
+        new_path
     }
 
-    pub fn compare<'a>(&self /* lhs */, rhs: &'a Path<Instr, Lbl>) -> Ordering<'a, Instr, Lbl>
+    pub fn compare<'a>(&self /* lhs */, rhs: &'a Path<Lbl>) -> Ordering<'a, Lbl>
     where
-        Instr: Eq,
         Lbl: Eq,
     {
         debug_checked_precondition!(self.satisfies_invariant());
         debug_checked_precondition!(rhs.satisfies_invariant());
 
-        match (&self.0[0], &rhs.0[0]) {
+        match (&self.first(), &rhs.first()) {
             // If a path starts with an existential, it means it has an unknown origin
             // But that unknown origin is not an extension of the label
             // Really this only happens in Move if you have a function that takes no input ref
@@ -62,69 +68,58 @@ impl<Instr, Lbl> Path<Instr, Lbl> {
             //   is out the window there
             // - A function that aborts, e.g. 'fun foo(): &u64 { abort 0 }'
             // In either case, the ref isn't an extension of any label, so incomparable
-            (Offset::Existential(_), Offset::Labeled(_))
-            | (Offset::Labeled(_), Offset::Existential(_)) => return Ordering::Incomparable,
+            (None, _) | (_, None) => return Ordering::Incomparable,
             _ => (),
         }
 
-        let mut l_iter = self.0.iter();
-        let mut r_iter = rhs.0.iter();
+        let mut l_iter = self.path.iter();
+        let mut r_iter = rhs.path.iter();
         let mut cur_l = l_iter.next();
         let mut cur_r = r_iter.next();
-        while let (Some(l), Some(r)) = (&cur_l, &cur_r) {
-            match (l, r) {
-                (Offset::Labeled(lbl_l), Offset::Labeled(lbl_r)) => {
-                    if lbl_l == lbl_r {
-                        // Equal labels, continue
-                        ()
-                    } else {
-                        // Not equal labels, incomparable
-                        return Ordering::Incomparable;
-                    }
-                }
-
-                // An existential is pessimistically extended by anything and extends anything
-                // It is equivalent to '.*' in regex terms
-                (Offset::Existential(_), r @ Offset::Existential(_))
-                | (Offset::Existential(_), r @ Offset::Labeled(_)) => {
-                    return Ordering::RightExtendsLeft(r)
-                }
-                (Offset::Labeled(_), r @ Offset::Existential(_)) => {
-                    return Ordering::RightExtendsLeft(r)
-                }
+        while let (Some(lbl_l), Some(lbl_r)) = (&cur_l, &cur_r) {
+            if lbl_l != lbl_r {
+                // Not equal labels, incomparable
+                return Ordering::Incomparable;
             }
             cur_l = l_iter.next();
             cur_r = r_iter.next();
         }
+        let cur_l = match cur_l {
+            Some(lbl) => Some(Extension::Label(lbl)),
+            None if self.ends_in_star => Some(Extension::Star),
+            None => None,
+        };
+        let cur_r = match cur_r {
+            Some(lbl) => Some(Extension::Label(lbl)),
+            None if rhs.ends_in_star => Some(Extension::Star),
+            None => None,
+        };
         match (cur_l, cur_r) {
+            (_, Some(ext)) => Ordering::RightExtendsLeft(ext),
             (Some(_), None) => Ordering::LeftExtendsRight,
             (None, None) => Ordering::Equal,
-            (None, Some(r)) => Ordering::RightExtendsLeft(r),
-            (Some(_), Some(_)) => unreachable!(),
         }
     }
 
-    pub fn first(&self) -> &Offset<Instr, Lbl> {
+    pub fn first(&self) -> Option<&Lbl> {
         debug_checked_precondition!(self.satisfies_invariant());
-        &self.0[0]
+        self.path.first()
     }
 
     fn satisfies_invariant(&self) -> bool {
-        !self.0.is_empty()
+        !self.path.is_empty() || self.ends_in_star
     }
 
     pub(crate) fn to_string(&self) -> String
     where
-        Instr: std::fmt::Display,
         Lbl: std::fmt::Display,
     {
-        self.0
+        let path = self
+            .path
             .iter()
-            .map(|offset| match offset {
-                Offset::Labeled(lbl) => format!("{}", lbl),
-                Offset::Existential((instr, num)) => format!("exists#{}#{}", instr, num),
-            })
+            .map(|lbl| format!("{}", lbl))
             .collect::<Vec<_>>()
-            .join(".")
+            .join(".");
+        format!("{}{}", path, if self.ends_in_star { "*" } else { "" })
     }
 }
