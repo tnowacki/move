@@ -375,20 +375,8 @@ impl<Loc: Copy, Lbl: Clone + Ord + std::fmt::Display> BorrowSet<Loc, Lbl> {
         self.consistent_world(other);
         for (id, other_ref) in &other.map {
             let self_ref = &self.map[id];
-            let self_paths = self_ref.paths();
-            for other_path in other_ref.paths() {
-                // Otherwise, check if there is any path in self s.t. the other path is an extension
-                // of it
-                // In other words, does there exist a path in self that covers the other path
-                let other_path_is_covered = self_paths.iter().any(|self_path| {
-                    matches!(
-                        self_path.compare(other_path),
-                        Ordering::Equal | Ordering::RightExtendsLeft(_)
-                    )
-                });
-                if !other_path_is_covered {
-                    return false;
-                }
+            if self_ref.paths().len() != other_ref.paths().len() {
+                return false;
             }
         }
         return true;
@@ -399,21 +387,8 @@ impl<Loc: Copy, Lbl: Clone + Ord + std::fmt::Display> BorrowSet<Loc, Lbl> {
         let mut joined = self.clone();
         for (id, other_ref) in &other.map {
             let self_ref = &self.map[id];
-            let self_paths = self_ref.paths();
-            for other_path in other_ref.paths() {
-                // Otherwise, check if there is any path in self s.t. the other path is an extension
-                // of it
-                // In other words, does there exist a path in self that covers the other path
-                let other_path_is_covered = self_paths.iter().any(|self_path| {
-                    matches!(
-                        self_path.compare(other_path),
-                        Ordering::Equal | Ordering::RightExtendsLeft(_)
-                    )
-                });
-                if !other_path_is_covered {
-                    joined.map.get_mut(id).unwrap().add_path(other_path.clone())
-                }
-            }
+            joined.map.get_mut(id).unwrap().paths =
+                self_ref.paths().union(other_ref.paths()).cloned().collect();
         }
         self.consistent_world(&joined);
         joined.set_next_id_after_join();

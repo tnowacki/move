@@ -27,7 +27,7 @@ pub(crate) struct Ref<Loc: Copy, Lbl: Clone + Ord> {
     /// true if mutable, false otherwise
     mutable: bool,
     /// Set of paths defining possible locations for this reference
-    paths: BTreeSet<BorrowPath<Loc, Lbl>>,
+    pub(crate) paths: BTreeSet<BorrowPath<Loc, Lbl>>,
 }
 
 #[derive(Clone)]
@@ -104,6 +104,7 @@ impl<Loc: Copy, Lbl: Clone + Ord> Ref<Loc, Lbl> {
         &self.paths
     }
 
+    #[allow(unused)]
     pub(crate) fn add_path(&mut self, additional: BorrowPath<Loc, Lbl>) {
         let is_additional = self.paths.insert(additional);
         assert!(is_additional);
