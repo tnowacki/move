@@ -83,7 +83,10 @@ impl<'a> CodeUnitVerifier<'a> {
             name_def_map,
         };
         code_unit_verifier.verify_common()?;
-        AcquiresVerifier::verify(module, index, function_definition)
+        if false {
+            AcquiresVerifier::verify(module, index, function_definition)?;
+        }
+        Ok(())
     }
 
     fn verify_common(&self) -> PartialVMResult<()> {
@@ -96,10 +99,12 @@ impl<'a> CodeUnitVerifier<'a> {
             ));
             val.parse::<bool>() == Ok(true) || val.parse::<usize>() == Ok(1)
         };
-        control_flow::verify(self.function_view.index(), self.function_view.code())?;
-        StackUsageVerifier::verify(&self.resolver, &self.function_view)?;
-        type_safety::verify(&self.resolver, &self.function_view)?;
-        locals_safety::verify(&self.resolver, &self.function_view)?;
+        if false {
+            control_flow::verify(self.function_view.index(), self.function_view.code())?;
+            StackUsageVerifier::verify(&self.resolver, &self.function_view)?;
+            type_safety::verify(&self.resolver, &self.function_view)?;
+            locals_safety::verify(&self.resolver, &self.function_view)?;
+        }
         if use_new_ref_safety {
             reference_safety2::verify(&self.resolver, &self.function_view, &self.name_def_map)?
         } else {

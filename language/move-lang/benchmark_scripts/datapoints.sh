@@ -1,6 +1,7 @@
 #!/bin/zsh
 
 alias analyze="pkill cargo; SET_BASED=1 cargo run --quiet --release --bin time-ref-safety -- "
+# alias analyze="pkill cargo; SET_BASED=1 cargo run --bin time-ref-safety -- "
 
 MAX_R=200
 R_STEP=10

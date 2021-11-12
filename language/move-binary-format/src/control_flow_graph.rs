@@ -3,7 +3,10 @@
 
 //! This module defines the control-flow graph uses for bytecode verification.
 use crate::file_format::{Bytecode, CodeOffset};
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    cmp::max,
+    collections::{BTreeMap, BTreeSet, VecDeque},
+};
 
 // BTree/Hash agnostic type wrappers
 type Map<K, V> = BTreeMap<K, V>;
@@ -21,6 +24,10 @@ pub trait ControlFlowGraph {
 
     /// Successors of the block ID in the bytecode vector
     fn successors(&self, block_id: BlockId) -> &Vec<BlockId>;
+
+    fn predecessors(&self, block_id: BlockId) -> &Vec<BlockId>;
+
+    fn traversal_order(&self) -> &Vec<BlockId>;
 
     /// Iterator over the indexes of instructions in this block
     fn instr_indexes(&self, block_id: BlockId) -> Box<dyn Iterator<Item = CodeOffset>>;
@@ -46,6 +53,8 @@ struct BasicBlock {
 pub struct VMControlFlowGraph {
     /// The basic blocks
     blocks: Map<BlockId, BasicBlock>,
+    predecessors: Map<BlockId, Vec<BlockId>>,
+    ordered_blocks: Vec<BlockId>,
 }
 
 impl BasicBlock {
@@ -73,7 +82,7 @@ impl VMControlFlowGraph {
         }
 
         // Create basic blocks
-        let mut cfg = VMControlFlowGraph { blocks: Map::new() };
+        let mut blocks = Map::new();
         let mut entry = 0;
         for pc in 0..code.len() {
             let co_pc: CodeOffset = pc as CodeOffset;
@@ -86,13 +95,45 @@ impl VMControlFlowGraph {
                     exit: co_pc,
                     successors,
                 };
-                cfg.blocks.insert(entry, bb);
+                blocks.insert(entry, bb);
                 entry = co_pc + 1;
             }
         }
 
+        let mut predecessors = Map::new();
+        for id in blocks.keys() {
+            predecessors.insert(*id, vec![]);
+        }
+        for (pred, block) in &blocks {
+            for id in &block.successors {
+                predecessors.get_mut(id).unwrap().push(*pred)
+            }
+        }
+
+        let mut depths = Map::new();
+        for id in blocks.keys() {
+            depths.insert(*id, 0);
+        }
+        let mut queue = VecDeque::new();
+        queue.push_back(0);
+        while let Some(cur) = queue.pop_front() {
+            let mut new_depth = 0;
+            for pred in &predecessors[&cur] {
+                new_depth = max(new_depth, depths[pred] + 1);
+            }
+            for successor in &blocks[&cur].successors {
+                queue.push_back(*successor)
+            }
+        }
+        let mut ordered_blocks: Vec<BlockId> = blocks.keys().cloned().collect();
+        ordered_blocks.sort_unstable_by_key(|id| depths[id]);
+
         assert_eq!(entry, code.len() as CodeOffset);
-        cfg
+        VMControlFlowGraph {
+            blocks,
+            predecessors,
+            ordered_blocks,
+        }
     }
 
     pub fn display(&self) {
@@ -167,6 +208,14 @@ impl ControlFlowGraph for VMControlFlowGraph {
 
     fn successors(&self, block_id: BlockId) -> &Vec<BlockId> {
         &self.blocks[&block_id].successors
+    }
+
+    fn predecessors(&self, block_id: BlockId) -> &Vec<BlockId> {
+        &self.predecessors[&block_id]
+    }
+
+    fn traversal_order(&self) -> &Vec<BlockId> {
+        &self.ordered_blocks
     }
 
     fn blocks(&self) -> Vec<BlockId> {
