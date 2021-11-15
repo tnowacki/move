@@ -1,5 +1,6 @@
 // Copyright (c) The Diem Core Contributors
 // SPDX-License-Identifier: Apache-2.0
+
 use mirai_annotations::debug_checked_precondition;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -44,8 +45,9 @@ impl<Lbl> Path<Lbl> {
 
         match extension {
             _ if self.ends_in_star => (),
-            Extension::Label(lbl) => new_path.path.push(lbl),
             Extension::Star => new_path.ends_in_star = true,
+            Extension::Label(_) if new_path.path.len() > 3 => new_path.ends_in_star = true,
+            Extension::Label(lbl) => new_path.path.push(lbl),
         }
         debug_checked_precondition!(new_path.satisfies_invariant());
         new_path

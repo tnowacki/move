@@ -5135,6 +5135,7 @@ dependencies = [
  "anyhow",
  "bcs",
  "borrow-graph",
+ "borrow-set",
  "bytecode-source-map",
  "bytecode-verifier",
  "codespan-reporting",

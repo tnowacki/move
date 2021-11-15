@@ -1,0 +1,129 @@
+// R = 2
+// F = 4
+// M = 50
+module 0x42.Example {
+
+    struct S0 has drop { f0: u64, f1: u64, f2: u64, f3: u64 }
+    struct S1 has drop { f0: Self.S0, f1: Self.S0, f2: Self.S0, f3: Self.S0 }
+
+    worst_case_big_set_long_path(l1: &mut Self.S1, cond: bool) {
+        let l0: &mut Self.S0;
+        let big_set: &mut u64;
+        let extra0: &mut u64;
+        let extra1: &mut u64;
+        let extra2: &mut u64;
+        let extra3: &mut u64;
+        let extra4: &mut u64;
+        let extra5: &mut u64;
+        let extra6: &mut u64;
+        let extra7: &mut u64;
+        let extra8: &mut u64;
+        let extra9: &mut u64;
+        let extra10: &mut u64;
+        let extra11: &mut u64;
+        let extra12: &mut u64;
+        let extra13: &mut u64;
+        let extra14: &mut u64;
+        let extra15: &mut u64;
+        let extra16: &mut u64;
+        let extra17: &mut u64;
+        let extra18: &mut u64;
+        let extra19: &mut u64;
+        let extra20: &mut u64;
+        let extra21: &mut u64;
+        let extra22: &mut u64;
+        let extra23: &mut u64;
+        let extra24: &mut u64;
+        let extra25: &mut u64;
+        let extra26: &mut u64;
+        let extra27: &mut u64;
+        let extra28: &mut u64;
+        let extra29: &mut u64;
+        let extra30: &mut u64;
+        let extra31: &mut u64;
+        let extra32: &mut u64;
+        let extra33: &mut u64;
+        let extra34: &mut u64;
+        let extra35: &mut u64;
+        let extra36: &mut u64;
+        let extra37: &mut u64;
+        let extra38: &mut u64;
+        let extra39: &mut u64;
+        let extra40: &mut u64;
+        let extra41: &mut u64;
+        let extra42: &mut u64;
+        let extra43: &mut u64;
+        let extra44: &mut u64;
+        let extra45: &mut u64;
+        let extra46: &mut u64;
+        let extra47: &mut u64;
+        let extra48: &mut u64;
+        let extra49: &mut u64;
+
+        l0 = &mut copy(l1).S1::f0;
+        if (copy(cond)) { l0 = &mut copy(l1).S1::f1; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f2; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f3; }
+        }}
+
+        big_set = &mut copy(l0).S0::f0;
+        if (copy(cond)) { big_set = &mut copy(l0).S0::f1; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f2; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f3; }
+        }}
+
+        extra0 = copy(big_set);
+        extra1 = copy(big_set);
+        extra2 = copy(big_set);
+        extra3 = copy(big_set);
+        extra4 = copy(big_set);
+        extra5 = copy(big_set);
+        extra6 = copy(big_set);
+        extra7 = copy(big_set);
+        extra8 = copy(big_set);
+        extra9 = copy(big_set);
+        extra10 = copy(big_set);
+        extra11 = copy(big_set);
+        extra12 = copy(big_set);
+        extra13 = copy(big_set);
+        extra14 = copy(big_set);
+        extra15 = copy(big_set);
+        extra16 = copy(big_set);
+        extra17 = copy(big_set);
+        extra18 = copy(big_set);
+        extra19 = copy(big_set);
+        extra20 = copy(big_set);
+        extra21 = copy(big_set);
+        extra22 = copy(big_set);
+        extra23 = copy(big_set);
+        extra24 = copy(big_set);
+        extra25 = copy(big_set);
+        extra26 = copy(big_set);
+        extra27 = copy(big_set);
+        extra28 = copy(big_set);
+        extra29 = copy(big_set);
+        extra30 = copy(big_set);
+        extra31 = copy(big_set);
+        extra32 = copy(big_set);
+        extra33 = copy(big_set);
+        extra34 = copy(big_set);
+        extra35 = copy(big_set);
+        extra36 = copy(big_set);
+        extra37 = copy(big_set);
+        extra38 = copy(big_set);
+        extra39 = copy(big_set);
+        extra40 = copy(big_set);
+        extra41 = copy(big_set);
+        extra42 = copy(big_set);
+        extra43 = copy(big_set);
+        extra44 = copy(big_set);
+        extra45 = copy(big_set);
+        extra46 = copy(big_set);
+        extra47 = copy(big_set);
+        extra48 = copy(big_set);
+        extra49 = copy(big_set);
+        *move(big_set) = 0;
+        return;
+    }
+
+}

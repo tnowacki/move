@@ -61,7 +61,7 @@ pub fn main() -> anyhow::Result<()> {
     if diags.max_severity().unwrap_or(Severity::Warning) > Severity::Warning {
         move_lang::diagnostics::report_diagnostics(&files, diags)
     }
-    const ITERATIONS: u128 = if cfg!(debug_assertions) { 100 } else { 1000 };
+    const ITERATIONS: u128 = if cfg!(debug_assertions) { 10 } else { 100 };
     let now = std::time::Instant::now();
     for _ in 0..ITERATIONS {
         let diags = compiled_unit::verify_units(&compiled_units);

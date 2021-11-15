@@ -1,0 +1,33 @@
+// R = 2
+// F = 6
+// M = 0
+module 0x42.Example {
+
+    struct S0 has drop { f0: u64, f1: u64, f2: u64, f3: u64, f4: u64, f5: u64 }
+    struct S1 has drop { f0: Self.S0, f1: Self.S0, f2: Self.S0, f3: Self.S0, f4: Self.S0, f5: Self.S0 }
+
+    worst_case_big_set_long_path(l1: &mut Self.S1, cond: bool) {
+        let l0: &mut Self.S0;
+        let big_set: &mut u64;
+
+        l0 = &mut copy(l1).S1::f0;
+        if (copy(cond)) { l0 = &mut copy(l1).S1::f1; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f2; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f3; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f4; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f5; }
+        }}}}
+
+        big_set = &mut copy(l0).S0::f0;
+        if (copy(cond)) { big_set = &mut copy(l0).S0::f1; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f2; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f3; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f4; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f5; }
+        }}}}
+
+        *move(big_set) = 0;
+        return;
+    }
+
+}

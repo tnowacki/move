@@ -1,0 +1,113 @@
+// R = 4
+// F = 11
+// M = 20
+module 0x42.Example {
+
+    struct S0 has drop { f0: u64, f1: u64, f2: u64, f3: u64, f4: u64, f5: u64, f6: u64, f7: u64, f8: u64, f9: u64, f10: u64 }
+    struct S1 has drop { f0: Self.S0, f1: Self.S0, f2: Self.S0, f3: Self.S0, f4: Self.S0, f5: Self.S0, f6: Self.S0, f7: Self.S0, f8: Self.S0, f9: Self.S0, f10: Self.S0 }
+    struct S2 has drop { f0: Self.S1, f1: Self.S1, f2: Self.S1, f3: Self.S1, f4: Self.S1, f5: Self.S1, f6: Self.S1, f7: Self.S1, f8: Self.S1, f9: Self.S1, f10: Self.S1 }
+    struct S3 has drop { f0: Self.S2, f1: Self.S2, f2: Self.S2, f3: Self.S2, f4: Self.S2, f5: Self.S2, f6: Self.S2, f7: Self.S2, f8: Self.S2, f9: Self.S2, f10: Self.S2 }
+
+    worst_case_big_set_long_path(l3: &mut Self.S3, cond: bool) {
+        let l2: &mut Self.S2;
+        let l1: &mut Self.S1;
+        let l0: &mut Self.S0;
+        let big_set: &mut u64;
+        let extra0: &mut u64;
+        let extra1: &mut u64;
+        let extra2: &mut u64;
+        let extra3: &mut u64;
+        let extra4: &mut u64;
+        let extra5: &mut u64;
+        let extra6: &mut u64;
+        let extra7: &mut u64;
+        let extra8: &mut u64;
+        let extra9: &mut u64;
+        let extra10: &mut u64;
+        let extra11: &mut u64;
+        let extra12: &mut u64;
+        let extra13: &mut u64;
+        let extra14: &mut u64;
+        let extra15: &mut u64;
+        let extra16: &mut u64;
+        let extra17: &mut u64;
+        let extra18: &mut u64;
+        let extra19: &mut u64;
+
+        l2 = &mut copy(l3).S3::f0;
+        if (copy(cond)) { l2 = &mut copy(l3).S3::f1; }
+        else { if (copy(cond)) { l2 = &mut copy(l3).S3::f2; }
+        else { if (copy(cond)) { l2 = &mut copy(l3).S3::f3; }
+        else { if (copy(cond)) { l2 = &mut copy(l3).S3::f4; }
+        else { if (copy(cond)) { l2 = &mut copy(l3).S3::f5; }
+        else { if (copy(cond)) { l2 = &mut copy(l3).S3::f6; }
+        else { if (copy(cond)) { l2 = &mut copy(l3).S3::f7; }
+        else { if (copy(cond)) { l2 = &mut copy(l3).S3::f8; }
+        else { if (copy(cond)) { l2 = &mut copy(l3).S3::f9; }
+        else { if (copy(cond)) { l2 = &mut copy(l3).S3::f10; }
+        }}}}}}}}}
+
+        l1 = &mut copy(l2).S2::f0;
+        if (copy(cond)) { l1 = &mut copy(l2).S2::f1; }
+        else { if (copy(cond)) { l1 = &mut copy(l2).S2::f2; }
+        else { if (copy(cond)) { l1 = &mut copy(l2).S2::f3; }
+        else { if (copy(cond)) { l1 = &mut copy(l2).S2::f4; }
+        else { if (copy(cond)) { l1 = &mut copy(l2).S2::f5; }
+        else { if (copy(cond)) { l1 = &mut copy(l2).S2::f6; }
+        else { if (copy(cond)) { l1 = &mut copy(l2).S2::f7; }
+        else { if (copy(cond)) { l1 = &mut copy(l2).S2::f8; }
+        else { if (copy(cond)) { l1 = &mut copy(l2).S2::f9; }
+        else { if (copy(cond)) { l1 = &mut copy(l2).S2::f10; }
+        }}}}}}}}}
+
+        l0 = &mut copy(l1).S1::f0;
+        if (copy(cond)) { l0 = &mut copy(l1).S1::f1; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f2; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f3; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f4; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f5; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f6; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f7; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f8; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f9; }
+        else { if (copy(cond)) { l0 = &mut copy(l1).S1::f10; }
+        }}}}}}}}}
+
+        big_set = &mut copy(l0).S0::f0;
+        if (copy(cond)) { big_set = &mut copy(l0).S0::f1; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f2; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f3; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f4; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f5; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f6; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f7; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f8; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f9; }
+        else { if (copy(cond)) { big_set = &mut copy(l0).S0::f10; }
+        }}}}}}}}}
+
+        extra0 = copy(big_set);
+        extra1 = copy(big_set);
+        extra2 = copy(big_set);
+        extra3 = copy(big_set);
+        extra4 = copy(big_set);
+        extra5 = copy(big_set);
+        extra6 = copy(big_set);
+        extra7 = copy(big_set);
+        extra8 = copy(big_set);
+        extra9 = copy(big_set);
+        extra10 = copy(big_set);
+        extra11 = copy(big_set);
+        extra12 = copy(big_set);
+        extra13 = copy(big_set);
+        extra14 = copy(big_set);
+        extra15 = copy(big_set);
+        extra16 = copy(big_set);
+        extra17 = copy(big_set);
+        extra18 = copy(big_set);
+        extra19 = copy(big_set);
+        *move(big_set) = 0;
+        return;
+    }
+
+}

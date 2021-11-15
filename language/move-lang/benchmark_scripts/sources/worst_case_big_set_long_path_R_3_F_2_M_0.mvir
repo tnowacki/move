@@ -1,0 +1,28 @@
+// R = 3
+// F = 2
+// M = 0
+module 0x42.Example {
+
+    struct S0 has drop { f0: u64, f1: u64 }
+    struct S1 has drop { f0: Self.S0, f1: Self.S0 }
+    struct S2 has drop { f0: Self.S1, f1: Self.S1 }
+
+    worst_case_big_set_long_path(l2: &mut Self.S2, cond: bool) {
+        let l1: &mut Self.S1;
+        let l0: &mut Self.S0;
+        let big_set: &mut u64;
+
+        l1 = &mut copy(l2).S2::f0;
+        if (copy(cond)) { l1 = &mut copy(l2).S2::f1; }
+
+        l0 = &mut copy(l1).S1::f0;
+        if (copy(cond)) { l0 = &mut copy(l1).S1::f1; }
+
+        big_set = &mut copy(l0).S0::f0;
+        if (copy(cond)) { big_set = &mut copy(l0).S0::f1; }
+
+        *move(big_set) = 0;
+        return;
+    }
+
+}
