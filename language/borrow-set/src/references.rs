@@ -2,13 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::paths::*;
-use mirai_annotations::debug_checked_verify;
 use std::{
     cmp,
     collections::BTreeSet,
     fmt::{self, Debug},
     iter,
-    iter::FromIterator,
+    num::NonZeroUsize,
 };
 
 //**************************************************************************************************
@@ -23,11 +22,12 @@ pub struct RefID(pub(crate) usize);
 /// for a single reference
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Ref<Loc: Copy, Lbl: Clone + Ord> {
-    pinned: bool,
     /// true if mutable, false otherwise
     mutable: bool,
     /// Set of paths defining possible locations for this reference
     paths: BTreeSet<BorrowPath<Loc, Lbl>>,
+    /// The number of references with this id
+    pub(crate) count: usize,
 }
 
 #[derive(Clone)]
@@ -44,64 +44,24 @@ pub(crate) struct BorrowPath<Loc, Lbl> {
 //**************************************************************************************************
 
 impl<Loc: Copy, Lbl: Clone + Ord> Ref<Loc, Lbl> {
-    pub(crate) fn pinned(mutable: bool, init_offset: Option<(Loc, Lbl)>) -> Self {
-        let paths = match init_offset {
-            Some((loc, lbl)) => {
-                BTreeSet::from_iter(vec![BorrowPath::initial(loc, Extension::Label(lbl))])
-            }
-            None => BTreeSet::new(),
-        };
-        Self {
-            pinned: true,
-            mutable,
-            paths,
-        }
-    }
-
     pub(crate) fn new(mutable: bool, paths: BTreeSet<BorrowPath<Loc, Lbl>>) -> Self {
         Self {
-            pinned: false,
             mutable,
             paths,
+            count: 1,
         }
-    }
-
-    pub(crate) fn make_copy(&self, loc: Loc, mutable: bool) -> Self {
-        let paths = self.copy_paths(loc);
-        Self {
-            pinned: false,
-            mutable,
-            paths,
-        }
-    }
-
-    pub(crate) fn copy_paths(&self, loc: Loc) -> BTreeSet<BorrowPath<Loc, Lbl>> {
-        self.paths
-            .iter()
-            .map(|path| {
-                let mut new_path = path.clone();
-                new_path.loc = loc;
-                new_path
-            })
-            .collect()
     }
 
     pub(crate) fn is_mutable(&self) -> bool {
         self.mutable
     }
 
-    pub(crate) fn is_pinned(&self) -> bool {
-        self.pinned
-    }
-
-    pub(crate) fn release_paths(&mut self) {
-        assert!(self.pinned);
-        self.paths = BTreeSet::new()
-    }
-
     pub(crate) fn paths(&self) -> &BTreeSet<BorrowPath<Loc, Lbl>> {
-        debug_checked_verify!(self.pinned || !self.paths.is_empty());
         &self.paths
+    }
+
+    pub(crate) fn into_paths(self) -> BTreeSet<BorrowPath<Loc, Lbl>> {
+        self.paths
     }
 
     pub(crate) fn add_path(&mut self, additional: BorrowPath<Loc, Lbl>) {
@@ -112,23 +72,53 @@ impl<Loc: Copy, Lbl: Clone + Ord> Ref<Loc, Lbl> {
     pub(crate) fn add_paths(&mut self, additional: impl IntoIterator<Item = BorrowPath<Loc, Lbl>>) {
         self.paths.extend(additional)
     }
-}
 
-impl<Loc, Lbl> BorrowPath<Loc, Lbl> {
-    pub(crate) fn initial(loc: Loc, lbl: Extension<Lbl>) -> Self {
-        Self {
-            loc,
-            path: Path::initial(lbl),
+    pub(crate) fn release_parent(
+        &mut self,
+        parent_ref: RefID,
+        updated_paths: &BTreeSet<BorrowPath<Loc, Lbl>>,
+    ) {
+        debug_assert!(updated_paths.iter().all(|bp| bp.path.ends_in_star));
+        let before_size = self.paths.len();
+        self.paths = std::mem::take(&mut self.paths)
+            .into_iter()
+            .filter(|bp| bp.path.ends_in_star)
+            .collect();
+        let after_size = self.paths.len();
+        debug_assert!(before_size >= after_size);
+        if before_size > after_size {
+            self.paths.extend(updated_paths.clone());
         }
     }
 
-    pub(crate) fn extend(&self, loc: Loc, extension: Extension<Lbl>) -> Self
-    where
-        Lbl: Clone,
-    {
+    pub(crate) fn freeze(&mut self) {
+        self.mutable = false
+    }
+
+    pub(crate) fn increment_count(&mut self) {
+        self.count += 1
+    }
+
+    pub(crate) fn decrement_count(&mut self) {
+        assert!(self.count > 1);
+        self.count -= 1
+    }
+
+    pub(crate) fn count(&self) -> usize {
+        self.count
+    }
+}
+
+impl<Loc, Lbl> BorrowPath<Loc, Lbl> {
+    pub(crate) fn new(
+        loc: Loc,
+        ref_start: Option<RefID>,
+        offsets: Vec<Lbl>,
+        ends_in_star: bool,
+    ) -> Self {
         Self {
             loc,
-            path: self.path.extend(extension),
+            path: Path::new(ref_start, offsets, ends_in_star),
         }
     }
 

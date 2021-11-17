@@ -1,5 +1,6 @@
 // Copyright (c) The Diem Core Contributors
 // SPDX-License-Identifier: Apache-2.0
+use crate::references::RefID;
 use mirai_annotations::debug_checked_precondition;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -10,8 +11,9 @@ pub enum Extension<Lbl> {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct Path<Lbl> {
-    path: Vec<Lbl>,
-    ends_in_star: bool,
+    pub(crate) ref_start: Option<RefID>,
+    pub(crate) path: Vec<Lbl>,
+    pub(crate) ends_in_star: bool,
 }
 
 #[derive(Debug)]
@@ -27,27 +29,13 @@ pub enum Ordering<'a, Lbl> {
 }
 
 impl<Lbl> Path<Lbl> {
-    pub fn initial(ext: Extension<Lbl>) -> Self {
-        let (path, ends_in_star) = match ext {
-            Extension::Label(lbl) => (vec![lbl], false),
-            Extension::Star => (vec![], true),
+    pub fn new(ref_start: Option<RefID>, path: Vec<Lbl>, ends_in_star: bool) -> Self {
+        let new_path = Self {
+            ref_start,
+            path,
+            ends_in_star,
         };
-        Self { path, ends_in_star }
-    }
-
-    pub fn extend(&self, extension: Extension<Lbl>) -> Self
-    where
-        Lbl: Clone,
-    {
-        debug_checked_precondition!(self.satisfies_invariant());
-        let mut new_path = self.clone();
-
-        match extension {
-            _ if self.ends_in_star => (),
-            Extension::Label(lbl) => new_path.path.push(lbl),
-            Extension::Star => new_path.ends_in_star = true,
-        }
-        debug_checked_precondition!(new_path.satisfies_invariant());
+        assert!(new_path.satisfies_invariant());
         new_path
     }
 
@@ -70,6 +58,20 @@ impl<Lbl> Path<Lbl> {
             // In either case, the ref isn't an extension of any label, so incomparable
             (None, _) | (_, None) => return Ordering::Incomparable,
             _ => (),
+        }
+
+        match (&self.ref_start, &rhs.ref_start) {
+            (Some(self_start), Some(other_start)) => {
+                // If the paths start with different references, incomparable
+                if self_start == other_start {
+                    return Ordering::Incomparable;
+                }
+                // otherwise they start with the same reference and could be comparable
+            }
+            // If one starts with a reference and the other doesn't, incomparable
+            (Some(_), None) | (None, Some(_)) => return Ordering::Incomparable,
+            // If neither starts with a reference, could be comparable
+            (None, None) => (),
         }
 
         let mut l_iter = self.path.iter();
@@ -114,12 +116,20 @@ impl<Lbl> Path<Lbl> {
     where
         Lbl: std::fmt::Display,
     {
-        let path = self
-            .path
+        let Self {
+            ref_start,
+            path,
+            ends_in_star,
+        } = self;
+        let path = path
             .iter()
             .map(|lbl| format!("{}", lbl))
             .collect::<Vec<_>>()
             .join(".");
-        format!("{}{}", path, if self.ends_in_star { "*" } else { "" })
+        let path_string = format!("{}{}", path, if *ends_in_star { "*" } else { "" });
+        match ref_start {
+            None => path_string,
+            Some(id) => format!("{}.{}", id.0, path_string),
+        }
     }
 }

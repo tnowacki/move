@@ -162,20 +162,21 @@ macro_rules! filtered_iter {
 
 impl<Loc: Copy, Lbl: Clone + Ord + std::fmt::Display> BorrowSet<Loc, Lbl> {
     pub fn new<K: Ord>(
-        pinned_initial_refs: impl IntoIterator<Item = (K, bool, Option<(Loc, Lbl)>)>,
+        initial_refs: impl IntoIterator<Item = (K, bool, Loc, Lbl)>,
     ) -> (Self, BTreeMap<K, RefID>) {
         let mut s = Self {
             map: BTreeMap::new(),
             next_id: 0,
         };
-        let ref_ids = pinned_initial_refs
+        let ref_ids = initial_refs
             .into_iter()
-            .map(|(k, mutable, initial_lbl_opt)| {
-                (k, s.add_ref(Ref::pinned(mutable, initial_lbl_opt)))
+            .map(|(k, mutable, loc, lbl)| {
+                let mut paths = BTreeSet::new();
+                paths.insert(BorrowPath::new(loc, None, vec![lbl], false));
+                (k, s.add_ref(Ref::new(mutable, paths)))
             })
             .collect();
         debug_checked_postcondition!((0..s.next_id).all(|i| s.map.contains_key(&RefID(i))));
-        debug_checked_postcondition!(s.map.values().all(|ref_| ref_.is_pinned()));
         (s, ref_ids)
     }
 
@@ -192,16 +193,25 @@ impl<Loc: Copy, Lbl: Clone + Ord + std::fmt::Display> BorrowSet<Loc, Lbl> {
         sources: impl IntoIterator<Item = RefID>,
         loc: Loc,
         mutable: bool,
-        extension: Extension<Lbl>,
+        offsets: Vec<Lbl>,
+        ends_in_star: bool,
     ) -> RefID {
+        // either the path ends in star or it has offsets, not both
+        debug_assert!(ends_in_star ^ !offsets.is_empty());
         let mut paths = BTreeSet::new();
         for source in sources {
-            for path in self.map[&source].paths() {
-                paths.insert(path.extend(loc.clone(), extension.clone()));
-            }
+            // for each source/parent reference, extend that reference
+            paths.insert(BorrowPath::new(
+                loc,
+                Some(source),
+                offsets.clone(),
+                ends_in_star,
+            ));
         }
         if paths.is_empty() {
-            paths.insert(BorrowPath::initial(loc, extension));
+            // if there were no source/parent references, the extension comes from a root
+            // i.e. a local or a global
+            paths.insert(BorrowPath::new(loc, None, offsets, ends_in_star));
         }
         self.add_ref(Ref::new(mutable, paths))
     }
@@ -215,19 +225,23 @@ impl<Loc: Copy, Lbl: Clone + Ord + std::fmt::Display> BorrowSet<Loc, Lbl> {
         self.map[&id].is_mutable()
     }
 
-    pub fn make_copy(&mut self, loc: Loc, id: RefID, mutable: bool) -> RefID {
-        let ref_ = self.map[&id].make_copy(loc, mutable);
-        self.add_ref(ref_)
+    pub fn make_copy(&mut self, id: RefID) -> RefID {
+        self.map.get_mut(&id).unwrap().increment_count();
+        id
     }
 
-    pub fn extend_by_label(
+    pub fn freeze(&mut self, id: RefID) {
+        self.map.get_mut(&id).unwrap().freeze()
+    }
+
+    pub fn extend_by_labels(
         &mut self,
         sources: impl IntoIterator<Item = RefID>,
         loc: Loc,
         mutable: bool,
-        lbl: Lbl,
+        offsets: Vec<Lbl>,
     ) -> RefID {
-        self.extend(sources, loc, mutable, Extension::Label(lbl))
+        self.extend(sources, loc, mutable, offsets, false)
     }
 
     pub fn extend_by_unknown(
@@ -236,31 +250,27 @@ impl<Loc: Copy, Lbl: Clone + Ord + std::fmt::Display> BorrowSet<Loc, Lbl> {
         loc: Loc,
         mutable: bool,
     ) -> RefID {
-        self.extend(sources, loc, mutable, Extension::Star)
-    }
-
-    pub fn move_into_pinned(&mut self, loc: Loc, pinned: RefID, other: RefID) {
-        if pinned == other {
-            return;
-        }
-        assert!(self.map[&pinned].is_pinned());
-        let new_paths = self.map[&other].copy_paths(loc);
-        if !self.is_pinned_released(pinned) {
-            self.release(pinned);
-        }
-        if !self.map[&other].is_pinned() || !self.is_pinned_released(other) {
-            self.release(other);
-        }
-        self.map.get_mut(&pinned).unwrap().add_paths(new_paths);
+        self.extend(sources, loc, mutable, vec![], true)
     }
 
     pub fn release(&mut self, id: RefID) {
         let ref_ = self.map.get_mut(&id).unwrap();
-        if ref_.is_pinned() {
-            assert!(!ref_.paths().is_empty());
-            ref_.release_paths()
-        } else {
-            self.map.remove(&id).unwrap();
+        if ref_.count() > 1 {
+            ref_.decrement_count();
+            return;
+        }
+
+        let ref_ = self.map.remove(&id).unwrap();
+        let updated_paths = ref_
+            .into_paths()
+            .into_iter()
+            .map(|mut bp| {
+                bp.path.ends_in_star = true;
+                bp
+            })
+            .collect();
+        for other_ref in self.map.values_mut() {
+            other_ref.release_parent(id, &updated_paths)
         }
     }
 
@@ -338,33 +348,31 @@ impl<Loc: Copy, Lbl: Clone + Ord + std::fmt::Display> BorrowSet<Loc, Lbl> {
         }
     }
 
-    pub fn all_starting_with_label(&self, lbl: &Lbl) -> BTreeMap<RefID, Loc> {
-        self.all_starting_with_predicate(|l| l == lbl)
+    // pub fn all_starting_with_label(&self, lbl: &Lbl) -> BTreeMap<RefID, Loc> {
+    //     self.all_starting_with_predicate(|(_, l)| l == lbl)
+    // }
+
+    pub fn all_start_with_ref(&self, id: RefID) -> BTreeMap<RefID, Loc> {
+        self.all_starting_with_predicate(|start_opt, _| {
+            start_opt.map(|start| id == start).unwrap_or(false)
+        })
     }
 
     pub fn all_starting_with_predicate(
         &self,
-        mut p: impl FnMut(&Lbl) -> bool,
+        mut p: impl FnMut(Option<RefID>, Option<&Lbl>) -> bool,
     ) -> BTreeMap<RefID, Loc> {
         let mut map = BTreeMap::new();
         for (id, ref_) in &self.map {
             for path in ref_.paths() {
-                match path.path.first() {
-                    Some(lbl) if p(lbl) => {
-                        map.insert(*id, path.loc);
-                    }
-                    _ => (),
+                let ref_start = path.path.ref_start;
+                let lbl_opt = path.path.first();
+                if p(ref_start, lbl_opt) {
+                    map.insert(*id, path.loc);
                 }
             }
         }
         map
-    }
-
-    /// Returns true iff a pinned id has no borrows
-    pub fn is_pinned_released(&self, id: RefID) -> bool {
-        let ref_ = &self.map[&id];
-        assert!(ref_.is_pinned());
-        ref_.paths().is_empty()
     }
 
     //**********************************************************************************************
@@ -435,27 +443,16 @@ impl<Loc: Copy, Lbl: Clone + Ord + std::fmt::Display> BorrowSet<Loc, Lbl> {
         debug_checked_postcondition!(self.map.keys().all(|id| other.map.contains_key(id)));
         debug_checked_postcondition!(other.map.keys().all(|id| self.map.contains_key(id)));
         // next_id is the same
-        // debug_checked_postcondition!(self.next_id == other.next_id);
-        // pinned status same
+        debug_checked_postcondition!(self.next_id == other.next_id);
         // mut status same
+        // count same
         if cfg!(debug_assertions) {
-            self.map.keys().for_each(|id| {
-                debug_checked_postcondition!(self.map[id].is_pinned() == other.map[id].is_pinned());
+            for id in self.map.keys() {
                 debug_checked_postcondition!(
                     self.map[id].is_mutable() == other.map[id].is_mutable()
                 );
-            });
-        }
-        // released status same
-        if cfg!(debug_assertions) {
-            self.map
-                .keys()
-                .filter(|id| self.map[id].is_pinned())
-                .for_each(|id| {
-                    debug_checked_postcondition!(
-                        self.is_pinned_released(*id) == other.is_pinned_released(*id)
-                    );
-                })
+                debug_checked_postcondition!(self.map[id].count() == other.map[id].count());
+            }
         }
     }
 
@@ -469,9 +466,8 @@ impl<Loc: Copy, Lbl: Clone + Ord + std::fmt::Display> BorrowSet<Loc, Lbl> {
         Lbl: std::fmt::Display,
     {
         for (id, ref_) in &self.map {
-            let mut_ = if ref_.is_mutable() { "mut " } else { "imm " };
-            let pinned = if ref_.is_pinned() { "#pinned" } else { "" };
-            println!("    {}{}{}: {{", mut_, id.0, pinned);
+            let mut_ = if ref_.is_mutable() { "mut" } else { "imm" };
+            println!("    {} {}: {{", mut_, id.0);
             for path in ref_.paths() {
                 println!("        {},", path.path.to_string());
             }
