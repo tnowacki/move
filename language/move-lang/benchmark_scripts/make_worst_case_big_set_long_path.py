@@ -8,6 +8,7 @@ M = int(sys.argv[3])
 assert R > 0
 assert F > 0
 
+print("// generated with stress_test.py")
 print("// R = {}".format(R))
 print("// F = {}".format(F))
 print("// M = {}".format(M))
@@ -17,22 +18,22 @@ print("")
 # structs
 zero_fields = ""
 for f in range(0, F):
-    if f == 0:
+    if F == 1:
         comma = ""
     else:
-        comma = ", "
-    zero_fields += "{}f{}: u64".format(comma, f)
-print("    struct S0 has drop { " + zero_fields + " }")
+        comma = ",\n"
+    zero_fields += "        f{}: u64{}".format(f, comma)
+print("    struct S0 has drop {\n" + zero_fields + "    }")
 for r in range(1, R):
     prev = r - 1
     fields = ""
     for f in range(0, F):
-        if f == 0:
+        if F == 1:
             comma = ""
         else:
-            comma = ", "
-        fields += "{}f{}: Self.S{}".format(comma, f, prev)
-    print("    struct S{} has drop {{ {} }}".format(r, fields))
+            comma = ",\n"
+        fields += "        f{}: Self.S{}{}".format(f, prev, comma)
+    print("    struct S{} has drop {{\n".format(r) + fields + "    }")
 print("")
 
 # function
@@ -76,6 +77,9 @@ for prev in reversed(range(0, R)):
 for m in range(0, M):
     print("        extra{} = copy(big_set);".format(m))
 
+print("        *move(big_set) = 0;")
+for r in reversed(range(0, R)):
+    print("        _ = move(l{});".format(r))
 print("        *move(big_set) = 0;")
 print("        return;")
 
