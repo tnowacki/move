@@ -6,6 +6,7 @@ use bytecode_source_map::{
     mapping::SourceMapping,
     source_map::{FunctionSourceMap, SourceName},
 };
+use bytecode_verifier::control_flow;
 use colored::*;
 use move_binary_format::{
     binary_views::BinaryIndexedView,
@@ -849,7 +850,8 @@ impl<'a> Disassembler<'a> {
             .collect();
 
         if self.options.print_basic_blocks {
-            let cfg = VMControlFlowGraph::new(&code.code);
+            let loop_bounds = control_flow::verify(None, code).unwrap();
+            let cfg = VMControlFlowGraph::new(loop_bounds, &code.code);
             for (block_number, block_id) in cfg.blocks().iter().enumerate() {
                 instrs.insert(
                     *block_id as usize + block_number,
