@@ -44,10 +44,16 @@ pub(crate) struct BorrowEdge<Loc: Copy, Lbl: Clone + Ord> {
     pub(crate) loc: Loc,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct BorrowEdgeSet<Loc: Copy, Lbl: Clone + Ord> {
+    edges: BTreeSet<BorrowEdge<Loc, Lbl>>,
+    overflown: bool,
+}
+
 /// Represents outgoing edges in the borrow graph
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct BorrowEdges<Loc: Copy, Lbl: Clone + Ord>(
-    pub(crate) BTreeMap<RefID, BTreeSet<BorrowEdge<Loc, Lbl>>>,
+    pub(crate) BTreeMap<RefID, BorrowEdgeSet<Loc, Lbl>>,
 );
 
 /// Represents the borrow relationships and information for a node in the borrow graph, i.e
@@ -73,6 +79,56 @@ pub(crate) struct Ref<Loc: Copy, Lbl: Clone + Ord> {
 impl<Loc: Copy, Lbl: Clone + Ord> BorrowEdge<Loc, Lbl> {
     pub(crate) fn leq(&self, other: &Self) -> bool {
         self == other || (!self.strong && paths::leq(&self.path, &other.path))
+    }
+}
+
+pub const MAX_EDGE_SET_SIZE: usize = 10;
+impl<Loc: Copy, Lbl: Clone + Ord> BorrowEdgeSet<Loc, Lbl> {
+    pub(crate) fn new() -> Self {
+        Self {
+            edges: BTreeSet::new(),
+            overflown: false,
+        }
+    }
+
+    pub(crate) fn insert(&mut self, edge: BorrowEdge<Loc, Lbl>) {
+        if self.overflown {
+            debug_assert!(!self.is_empty());
+            return;
+        }
+        if self.edges.len() + 1 > MAX_EDGE_SET_SIZE {
+            let loc = edge.loc;
+            self.edges = BTreeSet::from([BorrowEdge {
+                strong: false,
+                path: vec![],
+                loc,
+            }]);
+            self.overflown = true
+        } else {
+            self.edges.insert(edge);
+        }
+    }
+
+    pub(crate) fn remove(&mut self, edge: &BorrowEdge<Loc, Lbl>) {
+        debug_assert!(self.edges.remove(edge))
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.edges.len()
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.edges.is_empty()
+    }
+
+    pub(crate) fn as_inner(&self) -> &BTreeSet<BorrowEdge<Loc, Lbl>> {
+        debug_assert!(!self.is_empty());
+        &self.edges
+    }
+
+    pub(crate) fn into_inner(self) -> BTreeSet<BorrowEdge<Loc, Lbl>> {
+        debug_assert!(!self.is_empty());
+        self.edges
     }
 }
 
