@@ -124,6 +124,10 @@ impl AbstractState {
         )
     }
 
+    pub fn display(&self) {
+        self.borrow_graph.display_size()
+    }
+
     //**********************************************************************************************
     // Core API
     //**********************************************************************************************
@@ -694,6 +698,8 @@ impl AbstractDomain for AbstractState {
             .iter_locals()
             .all(|idx| self.locals.get(&idx) == joined.locals.get(&idx));
         let borrow_graph_unchanged = self.borrow_graph.leq(&joined.borrow_graph);
+        // joined.display();
+        // println!("");
         if locals_unchanged && borrow_graph_unchanged {
             JoinResult::Unchanged
         } else {

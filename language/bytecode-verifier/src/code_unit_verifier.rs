@@ -91,6 +91,7 @@ impl<'a> CodeUnitVerifier<'a> {
         StackUsageVerifier::verify(&self.resolver, &self.function_view)?;
         type_safety::verify(&self.resolver, &self.function_view)?;
         locals_safety::verify(&self.resolver, &self.function_view)?;
-        reference_safety::verify(&self.resolver, &self.function_view, &self.name_def_map)
+        reference_safety::verify(&self.resolver, &self.function_view, &self.name_def_map)?;
+        Ok(())
     }
 }

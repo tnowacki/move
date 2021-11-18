@@ -6,7 +6,7 @@ use move_binary_format::{
     control_flow_graph::{BlockId, ControlFlowGraph},
     file_format::{Bytecode, CodeOffset},
 };
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Trait for finite-height abstract domains. Infinite height domains would require a more complex
 /// trait with widening and a partial order.
@@ -79,7 +79,6 @@ pub(crate) trait AbstractInterpreter: TransferFunctions {
     ) -> InvariantMap<Self::State, Self::AnalysisError> {
         let mut inv_map: InvariantMap<Self::State, Self::AnalysisError> = InvariantMap::new();
         let entry_block_id = function_view.cfg().entry_block_id();
-        let mut work_list = vec![entry_block_id];
         inv_map.insert(
             entry_block_id,
             BlockInvariant {
@@ -88,7 +87,14 @@ pub(crate) trait AbstractInterpreter: TransferFunctions {
             },
         );
 
-        while let Some(block_id) = work_list.pop() {
+        let mut processed = BTreeSet::new();
+        for block_id in function_view.cfg().traversal_order() {
+            let block_id = *block_id;
+
+            for pred in function_view.cfg().predecessors(block_id) {
+                assert!(processed.contains(pred))
+            }
+
             let block_invariant = match inv_map.get_mut(&block_id) {
                 Some(invariant) => invariant,
                 None => unreachable!("Missing invariant for block {}", block_id),
@@ -105,26 +111,28 @@ pub(crate) trait AbstractInterpreter: TransferFunctions {
                     s
                 }
             };
+            let was_added = processed.insert(block_id);
+            assert!(was_added);
 
             // propagate postcondition of this block to successor blocks
             for next_block_id in function_view.cfg().successors(block_id) {
                 match inv_map.get_mut(next_block_id) {
                     Some(next_block_invariant) => {
-                        let join_result = {
+                        let _join_result = {
                             let old_pre = &mut next_block_invariant.pre;
                             old_pre.join(&post_state)
                         };
-                        match join_result {
-                            JoinResult::Unchanged => {
-                                // Pre is the same after join. Reanalyzing this block would produce
-                                // the same post. Don't schedule it.
-                                continue;
-                            }
-                            JoinResult::Changed => {
-                                // The pre changed. Schedule the next block.
-                                work_list.push(*next_block_id);
-                            }
-                        }
+                        // match join_result {
+                        //     JoinResult::Unchanged => {
+                        //         // Pre is the same after join. Reanalyzing this block would produce
+                        //         // the same post. Don't schedule it.
+                        //         continue;
+                        //     }
+                        //     JoinResult::Changed => {
+                        //         // The pre changed. Schedule the next block.
+                        //         work_list.push(*next_block_id);
+                        //     }
+                        // }
                     }
                     None => {
                         // Haven't visited the next block yet. Use the post of the current block as
@@ -136,10 +144,13 @@ pub(crate) trait AbstractInterpreter: TransferFunctions {
                                 post: BlockPostcondition::Success,
                             },
                         );
-                        work_list.push(*next_block_id);
+                        // work_list.push(*next_block_id);
                     }
                 }
             }
+        }
+        for id in function_view.cfg().blocks() {
+            assert!(matches!(&inv_map[&id].post, BlockPostcondition::Success))
         }
         inv_map
     }

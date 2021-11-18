@@ -22,6 +22,10 @@ pub trait ControlFlowGraph {
     /// Successors of the block ID in the bytecode vector
     fn successors(&self, block_id: BlockId) -> &Vec<BlockId>;
 
+    fn predecessors(&self, block_id: BlockId) -> &Vec<BlockId>;
+
+    fn traversal_order(&self) -> &Vec<BlockId>;
+
     /// Iterator over the indexes of instructions in this block
     fn instr_indexes(&self, block_id: BlockId) -> Box<dyn Iterator<Item = CodeOffset>>;
 
@@ -46,6 +50,8 @@ struct BasicBlock {
 pub struct VMControlFlowGraph {
     /// The basic blocks
     blocks: Map<BlockId, BasicBlock>,
+    predecessors: Map<BlockId, Vec<BlockId>>,
+    ordered_blocks: Vec<BlockId>,
 }
 
 impl BasicBlock {
@@ -73,7 +79,7 @@ impl VMControlFlowGraph {
         }
 
         // Create basic blocks
-        let mut cfg = VMControlFlowGraph { blocks: Map::new() };
+        let mut blocks = Map::new();
         let mut entry = 0;
         for pc in 0..code.len() {
             let co_pc: CodeOffset = pc as CodeOffset;
@@ -86,13 +92,61 @@ impl VMControlFlowGraph {
                     exit: co_pc,
                     successors,
                 };
-                cfg.blocks.insert(entry, bb);
+                blocks.insert(entry, bb);
                 entry = co_pc + 1;
             }
         }
 
+        let mut predecessors = Map::new();
+        for id in blocks.keys() {
+            predecessors.insert(*id, vec![]);
+        }
+        for (pred, block) in &blocks {
+            for id in &block.successors {
+                predecessors.get_mut(id).unwrap().push(*pred)
+            }
+        }
+
+        let mut depths = Map::new();
+        for id in blocks.keys() {
+            depths.insert(*id, 0);
+        }
+        let mut stack = vec![];
+        let mut ordered_blocks: Vec<BlockId> = vec![];
+        let mut perma_marked: BTreeSet<BlockId> = BTreeSet::new();
+        let mut visit_count: BTreeMap<BlockId, u64> =
+            blocks.keys().copied().map(|id| (id, 0)).collect();
+        stack.push(0);
+        while let Some(cur) = stack.last().copied() {
+            if perma_marked.contains(&cur) {
+                stack.pop();
+                continue;
+            }
+            match visit_count[&cur] {
+                0 => {
+                    *visit_count.get_mut(&cur).unwrap() = 1;
+                    for successor in &blocks[&cur].successors {
+                        stack.push(*successor)
+                    }
+                }
+                1 => {
+                    *visit_count.get_mut(&cur).unwrap() = 2;
+                    perma_marked.insert(cur);
+                    ordered_blocks.push(cur)
+                }
+                _ => panic!(),
+            }
+        }
+        ordered_blocks.reverse();
+        assert!(perma_marked.len() == blocks.len());
+        assert!(perma_marked.len() == ordered_blocks.len());
+
         assert_eq!(entry, code.len() as CodeOffset);
-        cfg
+        VMControlFlowGraph {
+            blocks,
+            predecessors,
+            ordered_blocks,
+        }
     }
 
     pub fn display(&self) {
@@ -167,6 +221,14 @@ impl ControlFlowGraph for VMControlFlowGraph {
 
     fn successors(&self, block_id: BlockId) -> &Vec<BlockId> {
         &self.blocks[&block_id].successors
+    }
+
+    fn predecessors(&self, block_id: BlockId) -> &Vec<BlockId> {
+        &self.predecessors[&block_id]
+    }
+
+    fn traversal_order(&self) -> &Vec<BlockId> {
+        &self.ordered_blocks
     }
 
     fn blocks(&self) -> Vec<BlockId> {

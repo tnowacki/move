@@ -468,4 +468,25 @@ impl<Loc: Copy, Lbl: Clone + Ord> BorrowGraph<Loc, Lbl> {
             }
         }
     }
+
+    #[allow(dead_code)]
+    pub fn display_size(&self)
+    where
+        Lbl: std::fmt::Display,
+    {
+        for (id, ref_info) in &self.0 {
+            println!(
+                "id: {}, borrowed_by: {}, borowed_by_total: {}, borrows_from: {}",
+                id.0,
+                ref_info.borrowed_by.0.len(),
+                ref_info
+                    .borrowed_by
+                    .0
+                    .values()
+                    .map(|es| es.len())
+                    .sum::<usize>(),
+                ref_info.borrows_from.len(),
+            );
+        }
+    }
 }
