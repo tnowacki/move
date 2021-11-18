@@ -25,6 +25,7 @@ move-symbol-pool = { path = "../move-symbol-pool" }
 diem-workspace-hack = { path = "../../common/workspace-hack" }
 move-ir-types = { path = "../move-ir/types" }
 ir-to-bytecode = { path = "../move-ir-compiler/ir-to-bytecode" }
+move-ir-compiler = { path = "../move-ir-compiler" }
 borrow-graph = { path = "../borrow-graph" }
 bytecode-source-map = { path = "../move-ir-compiler/bytecode-source-map" }
 bcs = "0.1.2"
