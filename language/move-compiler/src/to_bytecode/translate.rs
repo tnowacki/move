@@ -1071,8 +1071,24 @@ fn module_call(
     tys: Vec<H::BaseType>,
 ) {
     use IR::Bytecode_ as B;
-    let (m, n) = context.qualified_function_name(&mident, fname);
-    code.push(sp(loc, B::Call(m, n, base_types(context, tys))))
+    let mut btys = base_types(context, tys);
+    code.push(sp(
+        loc,
+        match (mident.value.module.0.value.as_str(), fname.0.value.as_str()) {
+            ("Vector", "empty") => B::VecPack(btys.pop().unwrap(), 0),
+            ("Vector", "length") => B::VecLen(btys.pop().unwrap()),
+            ("Vector", "borrow") => B::VecImmBorrow(btys.pop().unwrap()),
+            ("Vector", "push_back") => B::VecPushBack(btys.pop().unwrap()),
+            ("Vector", "borrow_mut") => B::VecMutBorrow(btys.pop().unwrap()),
+            ("Vector", "pop_back") => B::VecPopBack(btys.pop().unwrap()),
+            ("Vector", "destroy_empty") => B::VecUnpack(btys.pop().unwrap(), 0),
+            ("Vector", "swap") => B::VecSwap(btys.pop().unwrap()),
+            _ => {
+                let (m, n) = context.qualified_function_name(&mident, fname);
+                B::Call(m, n, btys)
+            }
+        },
+    ));
 }
 
 fn builtin(context: &mut Context, code: &mut IR::BytecodeBlock, sp!(loc, b_): H::BuiltinFunction) {
