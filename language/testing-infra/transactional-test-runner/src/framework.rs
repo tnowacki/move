@@ -127,7 +127,7 @@ pub trait MoveTestAdapter<'a> {
         named_addr_opt: Option<Identifier>,
         gas_budget: Option<u64>,
         extra: Self::ExtraPublishArgs,
-    ) -> Result<()>;
+    ) -> Result<(Option<String>, CompiledModule)>;
     fn execute_script(
         &mut self,
         script: CompiledScript,
@@ -246,26 +246,31 @@ pub trait MoveTestAdapter<'a> {
                                 start_line, command_lines_stop
                             ),
                         };
-                        state.add_with_source_file(
-                            named_addr_opt,
-                            module.clone(),
-                            (data_path.to_owned(), data),
-                        );
                         (named_addr_opt, module, warnings_opt)
                     }
                     SyntaxChoice::IR => {
                         let module = compile_ir_module(state.dep_modules(), data_path)?;
-                        state.add_and_generate_interface_file(module.clone());
                         (None, module, None)
                     }
                 };
-                self.publish_module(
+                let (output, module) = self.publish_module(
                     module,
                     named_addr_opt.map(|s| Identifier::new(s.as_str()).unwrap()),
                     gas_budget,
                     extra_args,
                 )?;
-                Ok(warnings_opt)
+                match syntax {
+                    SyntaxChoice::Source => self.compiled_state().add_with_source_file(
+                        named_addr_opt,
+                        module,
+                        (data_path.to_owned(), data),
+                    ),
+                    SyntaxChoice::IR => {
+                        self.compiled_state()
+                            .add_and_generate_interface_file(module);
+                    }
+                };
+                Ok(merge_output(warnings_opt, output))
             }
             TaskCommand::Run(
                 RunCommand {
