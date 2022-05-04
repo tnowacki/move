@@ -165,15 +165,18 @@ impl AliasMap {
         }
     }
 
-    pub fn member_alias_get(&mut self, n: &Name) -> Option<&(ModuleIdent, Name)> {
-        match self.members.get_mut(n) {
+    // use Foo::B as A;
+    // n = sp(loc_n, "A");
+    pub fn member_alias_get(&mut self, sp!(loc, n_): &Name) -> Option<(ModuleIdent, Name)> {
+        match self.members.get_mut_(n_) {
             None => None,
-            Some((depth_opt, ident_name)) => {
+            Some((depth_opt, (sp!(_, mod_ident), sp!(_, mem)))) => {
+                // ident_name = (sp(loc_mod, "Foo"), sp(loc_mem, "B"))
                 if let Some(depth) = depth_opt {
-                    self.unused[*depth].members.remove(n);
+                    self.unused[*depth].members.remove_(n_);
                 }
                 *depth_opt = None;
-                Some(ident_name)
+                Some((sp(*loc, *mod_ident), sp(*loc, *mem)))
             }
         }
     }

@@ -146,22 +146,22 @@ impl<'a> MoveTestAdapter<'a> for SimpleVMTestAdapter<'a> {
         _named_addr_opt: Option<Identifier>,
         gas_budget: Option<u64>,
         _extra_args: Self::ExtraPublishArgs,
-    ) -> Result<()> {
+    ) -> Result<(Option<String>, CompiledModule)> {
         let mut module_bytes = vec![];
         module.serialize(&mut module_bytes)?;
 
         let id = module.self_id();
         let sender = *id.address();
-        self.perform_session_action(gas_budget, |session, gas_status| {
+        match self.perform_session_action(gas_budget, |session, gas_status| {
             session.publish_module(module_bytes, sender, gas_status)
-        })
-        .map_err(|e| {
-            anyhow!(
+        }) {
+            Ok(()) => Ok((None, module)),
+            Err(e) => Err(anyhow!(
                 "Unable to publish module '{}'. Got VMError: {}",
                 module.self_id(),
                 format_vm_error(&e)
-            )
-        })
+            )),
+        }
     }
 
     fn execute_script(

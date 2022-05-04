@@ -53,7 +53,7 @@ pub struct CompiledState<'a> {
     pre_compiled_deps: Option<&'a FullyCompiledProgram>,
     pre_compiled_ids: BTreeSet<(AccountAddress, String)>,
     compiled_module_named_address_mapping: BTreeMap<ModuleId, Symbol>,
-    named_address_mapping: BTreeMap<String, NumericalAddress>,
+    pub named_address_mapping: BTreeMap<String, NumericalAddress>,
     default_named_address_mapping: Option<NumericalAddress>,
     modules: BTreeMap<ModuleId, ProcessedModule>,
 }
@@ -87,14 +87,6 @@ impl<'a> CompiledState<'a> {
             })
             .collect()
     }
-
-    pub fn insert_named_address(
-        &mut self,
-        name: String,
-        addr: NumericalAddress,
-    ) -> Option<NumericalAddress> {
-        self.named_address_mapping.insert(name, addr)
-    }
 }
 
 fn merge_output(left: Option<String>, right: Option<String>) -> Option<String> {
@@ -127,7 +119,7 @@ pub trait MoveTestAdapter<'a> {
         named_addr_opt: Option<Identifier>,
         gas_budget: Option<u64>,
         extra: Self::ExtraPublishArgs,
-    ) -> Result<()>;
+    ) -> Result<(Option<String>, CompiledModule)>;
     fn execute_script(
         &mut self,
         script: CompiledScript,
@@ -246,26 +238,31 @@ pub trait MoveTestAdapter<'a> {
                                 start_line, command_lines_stop
                             ),
                         };
-                        state.add_with_source_file(
-                            named_addr_opt,
-                            module.clone(),
-                            (data_path.to_owned(), data),
-                        );
                         (named_addr_opt, module, warnings_opt)
                     }
                     SyntaxChoice::IR => {
                         let module = compile_ir_module(state.dep_modules(), data_path)?;
-                        state.add_and_generate_interface_file(module.clone());
                         (None, module, None)
                     }
                 };
-                self.publish_module(
+                let (output, module) = self.publish_module(
                     module,
                     named_addr_opt.map(|s| Identifier::new(s.as_str()).unwrap()),
                     gas_budget,
                     extra_args,
                 )?;
-                Ok(warnings_opt)
+                match syntax {
+                    SyntaxChoice::Source => self.compiled_state().add_with_source_file(
+                        named_addr_opt,
+                        module,
+                        (data_path.to_owned(), data),
+                    ),
+                    SyntaxChoice::IR => {
+                        self.compiled_state()
+                            .add_and_generate_interface_file(module);
+                    }
+                };
+                Ok(merge_output(warnings_opt, output))
             }
             TaskCommand::Run(
                 RunCommand {
