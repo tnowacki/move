@@ -88,7 +88,6 @@ pub fn build_doc(
     with_diagram: bool,
     named_addresses: BTreeMap<String, NumericalAddress>,
 ) {
-    println!("build doc");
     let options = move_prover::cli::Options {
         move_sources: sources.to_vec(),
         move_deps: dep_paths,
@@ -107,7 +106,6 @@ pub fn build_doc(
         ..Default::default()
     };
     options.setup_logging_for_test();
-    println!("built options");
     move_prover::run_move_prover_errors_to_stderr(options).unwrap();
 }
 
