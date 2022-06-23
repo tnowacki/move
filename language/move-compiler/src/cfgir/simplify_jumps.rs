@@ -25,15 +25,18 @@ fn optimize_cmd(sp!(_, cmd_): &mut Command) -> bool {
     use Value_ as V;
     match cmd_ {
         C::JumpIf {
-            cond:
-                Exp {
-                    exp: sp!(_, E::Value(sp!(_, V::Bool(cond)))),
-                    ..
-                },
+            cond,
             if_true,
             if_false,
         } => {
-            let lbl = if *cond { *if_true } else { *if_false };
+            let cond = match &**cond {
+                Exp {
+                    exp: sp!(_, E::Value(sp!(_, V::Bool(cond)))),
+                    ..
+                } => *cond,
+                _ => return false,
+            };
+            let lbl = if cond { *if_true } else { *if_false };
             *cmd_ = C::Jump {
                 target: lbl,
                 from_user: false,

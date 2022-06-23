@@ -773,6 +773,7 @@ fn run(
             )
         }
         PassResult::Expansion(eprog) => {
+            println!("running naming");
             let nprog = naming::translate::program(compilation_env, pre_compiled_lib, eprog);
             compilation_env.check_diags_at_or_above_severity(Severity::Bug)?;
             run(
@@ -784,6 +785,7 @@ fn run(
             )
         }
         PassResult::Naming(nprog) => {
+            println!("running typing");
             let tprog = typing::translate::program(compilation_env, pre_compiled_lib, nprog);
             compilation_env.check_diags_at_or_above_severity(Severity::BlockingError)?;
             run(
@@ -795,6 +797,7 @@ fn run(
             )
         }
         PassResult::Typing(tprog) => {
+            println!("running hlir");
             let hprog = hlir::translate::program(compilation_env, pre_compiled_lib, tprog);
             compilation_env.check_diags_at_or_above_severity(Severity::Bug)?;
             run(
@@ -806,6 +809,7 @@ fn run(
             )
         }
         PassResult::HLIR(hprog) => {
+            println!("running cfgir");
             let cprog = cfgir::translate::program(compilation_env, pre_compiled_lib, hprog);
             compilation_env.check_diags_at_or_above_severity(Severity::NonblockingError)?;
             run(
@@ -817,6 +821,7 @@ fn run(
             )
         }
         PassResult::CFGIR(cprog) => {
+            println!("running to-bytecode");
             let compiled_units =
                 to_bytecode::translate::program(compilation_env, pre_compiled_lib, cprog);
             compilation_env.check_diags_at_or_above_severity(Severity::NonblockingError)?;

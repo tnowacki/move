@@ -523,11 +523,11 @@ fn block(
     loc: Loc,
     expected_type_opt: Option<&H::Type>,
     mut seq: T::Sequence,
-) -> H::Exp {
+) -> Box<H::Exp> {
     use T::SequenceItem_ as S;
     let last = match seq.pop_back() {
         None => {
-            return H::exp(
+            return Box::new(H::exp(
                 sp(loc, H::Type_::Unit),
                 sp(
                     loc,
@@ -535,7 +535,7 @@ fn block(
                         case: H::UnitCase::FromUser,
                     },
                 ),
-            )
+            ))
         }
         Some(sp!(_, S::Seq(last))) => last,
         Some(_) => panic!("ICE last sequence item should be exp"),
@@ -544,22 +544,22 @@ fn block(
     let old_scope = context.local_scope.clone();
     for sp!(sloc, seq_item_) in seq {
         match seq_item_ {
-            S::Seq(te) => statement(context, result, *te),
+            S::Seq(te) => statement(context, result, te),
             S::Declare(binds) => declare_bind_list(context, &binds),
             S::Bind(binds, ty, e) => {
                 let expected_tys = expected_types(context, sloc, ty);
-                let res = exp_(context, result, Some(&expected_tys), *e);
+                let res = exp(context, result, Some(&expected_tys), e);
                 declare_bind_list(context, &binds);
                 assign_command(context, result, sloc, binds, res);
             }
         }
     }
-    let res = exp_(context, result, expected_type_opt, *last);
+    let res = exp(context, result, expected_type_opt, last);
     context.local_scope = old_scope;
     res
 }
 
-fn statement(context: &mut Context, result: &mut Block, e: T::Exp) {
+fn statement(context: &mut Context, result: &mut Block, e: Box<T::Exp>) {
     use H::Statement_ as S;
     use T::UnannotatedExp_ as TE;
 
@@ -567,14 +567,14 @@ fn statement(context: &mut Context, result: &mut Block, e: T::Exp) {
     let sp!(eloc, e_) = e.exp;
     let stmt_ = match e_ {
         TE::IfElse(tb, tt, tf) => {
-            let cond = exp(context, result, None, *tb);
+            let cond = exp(context, result, None, tb);
 
             let mut if_block = Block::new();
-            let et = exp_(context, &mut if_block, None, *tt);
+            let et = exp(context, &mut if_block, None, tt);
             ignore_and_pop(&mut if_block, et);
 
             let mut else_block = Block::new();
-            let ef = exp_(context, &mut else_block, None, *tf);
+            let ef = exp(context, &mut else_block, None, tf);
             ignore_and_pop(&mut else_block, ef);
 
             S::IfElse {
@@ -585,10 +585,10 @@ fn statement(context: &mut Context, result: &mut Block, e: T::Exp) {
         }
         TE::While(tb, loop_body) => {
             let mut cond_block = Block::new();
-            let cond_exp = exp(context, &mut cond_block, None, *tb);
+            let cond_exp = exp(context, &mut cond_block, None, tb);
 
             let mut loop_block = Block::new();
-            let el = exp_(context, &mut loop_block, None, *loop_body);
+            let el = exp(context, &mut loop_block, None, loop_body);
             ignore_and_pop(&mut loop_block, el);
 
             S::While {
@@ -600,7 +600,7 @@ fn statement(context: &mut Context, result: &mut Block, e: T::Exp) {
             body: loop_body,
             has_break,
         } => {
-            let loop_block = statement_loop_body(context, *loop_body);
+            let loop_block = statement_loop_body(context, loop_body);
 
             S::Loop {
                 block: loop_block,
@@ -614,7 +614,7 @@ fn statement(context: &mut Context, result: &mut Block, e: T::Exp) {
         }
         e_ => {
             let te = T::exp(ty, sp(eloc, e_));
-            let e = exp_(context, result, None, te);
+            let e = exp(context, result, None, Box::new(te));
             ignore_and_pop(result, e);
             return;
         }
@@ -622,9 +622,9 @@ fn statement(context: &mut Context, result: &mut Block, e: T::Exp) {
     result.push_back(sp(eloc, stmt_))
 }
 
-fn statement_loop_body(context: &mut Context, body: T::Exp) -> Block {
+fn statement_loop_body(context: &mut Context, body: Box<T::Exp>) -> Block {
     let mut loop_block = Block::new();
-    let el = exp_(context, &mut loop_block, None, body);
+    let el = exp(context, &mut loop_block, None, body);
     ignore_and_pop(&mut loop_block, el);
     loop_block
 }
@@ -656,7 +656,7 @@ fn assign_command(
     result: &mut Block,
     loc: Loc,
     sp!(_, assigns): T::LValueList,
-    rvalue: H::Exp,
+    rvalue: Box<H::Exp>,
 ) {
     use H::{Command_ as C, Statement_ as S};
     let mut lvalues = vec![];
@@ -668,10 +668,7 @@ fn assign_command(
         lvalues.push(ls);
         after.append(&mut af);
     }
-    result.push_back(sp(
-        loc,
-        S::Command(sp(loc, C::Assign(lvalues, Box::new(rvalue)))),
-    ));
+    result.push_back(sp(loc, S::Command(sp(loc, C::Assign(lvalues, rvalue)))));
     result.append(&mut after);
 }
 
@@ -718,7 +715,7 @@ fn assign(
                 let floc = tfa.loc;
                 let borrow_ = E::Borrow(mut_, Box::new(copy_tmp()), f);
                 let borrow_ty = H::Type_::single(sp(floc, H::SingleType_::Ref(mut_, bt)));
-                let borrow = H::exp(borrow_ty, sp(floc, borrow_));
+                let borrow = Box::new(H::exp(borrow_ty, sp(floc, borrow_)));
                 assign_command(context, &mut after, floc, sp(floc, vec![tfa]), borrow);
             }
             L::Var(tmp, Box::new(rvalue_ty.clone()))
@@ -757,7 +754,7 @@ fn assign_fields(
 // Commands
 //**************************************************************************************************
 
-fn ignore_and_pop(result: &mut Block, e: H::Exp) {
+fn ignore_and_pop(result: &mut Block, e: Box<H::Exp>) {
     match &e.exp.value {
         H::UnannotatedExp_::Unreachable => (),
         _ => {
@@ -777,21 +774,12 @@ fn ignore_and_pop(result: &mut Block, e: H::Exp) {
 // Expressions
 //**************************************************************************************************
 
-fn exp(
-    context: &mut Context,
-    result: &mut Block,
-    expected_type_opt: Option<&H::Type>,
-    te: T::Exp,
-) -> Box<H::Exp> {
-    Box::new(exp_(context, result, expected_type_opt, te))
-}
-
-fn exp_<'env>(
+fn exp<'env>(
     context: &mut Context<'env>,
     result: &mut Block,
     initial_expected_type_opt: Option<&H::Type>,
-    initial_e: T::Exp,
-) -> H::Exp {
+    initial_e: Box<T::Exp>,
+) -> Box<H::Exp> {
     use std::{cell::RefCell, rc::Rc};
 
     struct Stack<'a, 'env> {
@@ -848,8 +836,8 @@ fn exp_<'env>(
                 let f_else = inner!(else_block, Some(ty.clone()), if_false);
 
                 let f_if_else = move |s: &mut Stack| {
-                    let ef = s.operands.pop().unwrap();
-                    let et = s.operands.pop().unwrap();
+                    let ef = Box::new(s.operands.pop().unwrap());
+                    let et = Box::new(s.operands.pop().unwrap());
                     let cond = Box::new(s.operands.pop().unwrap());
 
                     let mut if_block = Rc::try_unwrap(if_block).unwrap().into_inner();
@@ -992,7 +980,7 @@ fn exp_<'env>(
             te_ => {
                 let result = &mut *result.borrow_mut();
                 let e_res = exp_impl(stack.context, result, ty, loc, te_);
-                let e_res = maybe_freeze(stack.context, result, cur_expected_type_opt, e_res);
+                let e_res = maybe_freeze(stack.context, result, cur_expected_type_opt, *e_res);
                 stack.operands.push(e_res)
             }
         }
@@ -1008,7 +996,7 @@ fn exp_<'env>(
         &mut stack,
         rc_result.clone(),
         initial_expected_type_opt.cloned(),
-        Box::new(initial_e),
+        initial_e,
     );
     while let Some(f) = stack.frames.pop() {
         f(&mut stack)
@@ -1017,7 +1005,7 @@ fn exp_<'env>(
     assert!(stack.frames.is_empty());
     assert!(stack.operands.is_empty());
     *result = Rc::try_unwrap(rc_result).unwrap().into_inner();
-    e_res
+    Box::new(e_res)
 }
 
 enum TmpItem {
@@ -1031,18 +1019,17 @@ fn exp_impl(
     ty: H::Type,
     eloc: Loc,
     e_: T::UnannotatedExp_,
-) -> H::Exp {
+) -> Box<H::Exp> {
     use H::{Command_ as C, Statement_ as S, UnannotatedExp_ as HE};
     use T::UnannotatedExp_ as TE;
-
     let res = match e_ {
         // Statement-like expressions
         TE::While(tb, loop_body) => {
             let mut cond_block = Block::new();
-            let cond_exp = exp(context, &mut cond_block, None, *tb);
+            let cond_exp = exp(context, &mut cond_block, None, tb);
 
             let mut loop_block = Block::new();
-            let el = exp_(context, &mut loop_block, None, *loop_body);
+            let el = exp(context, &mut loop_block, None, loop_body);
             ignore_and_pop(&mut loop_block, el);
 
             let s_ = S::While {
@@ -1058,7 +1045,7 @@ fn exp_impl(
             has_break,
             body: loop_body,
         } => {
-            let loop_block = statement_loop_body(context, *loop_body);
+            let loop_block = statement_loop_body(context, loop_body);
 
             let s_ = S::Loop {
                 block: loop_block,
@@ -1078,7 +1065,7 @@ fn exp_impl(
         // Command-like expressions
         TE::Return(te) => {
             let expected_type = context.signature.as_ref().map(|s| s.return_type.clone());
-            let e = exp_(context, result, expected_type.as_ref(), *te);
+            let e = exp(context, result, expected_type.as_ref(), te);
             let c = sp(
                 eloc,
                 C::Return {
@@ -1090,7 +1077,7 @@ fn exp_impl(
             HE::Unreachable
         }
         TE::Abort(te) => {
-            let e = exp_(context, result, None, *te);
+            let e = exp(context, result, None, te);
             let c = sp(eloc, C::Abort(e));
             result.push_back(sp(eloc, S::Command(c)));
             HE::Unreachable
@@ -1107,15 +1094,15 @@ fn exp_impl(
         }
         TE::Assign(assigns, lvalue_ty, te) => {
             let expected_type = expected_types(context, eloc, lvalue_ty);
-            let e = exp_(context, result, Some(&expected_type), *te);
+            let e = exp(context, result, Some(&expected_type), te);
             assign_command(context, result, eloc, assigns, e);
             HE::Unit {
                 case: H::UnitCase::Implicit,
             }
         }
         TE::Mutate(tl, tr) => {
-            let er = exp(context, result, None, *tr);
-            let el = exp(context, result, None, *tl);
+            let er = exp(context, result, None, tr);
+            let el = exp(context, result, None, tl);
             let c = sp(eloc, C::Mutate(el, er));
             result.push_back(sp(eloc, S::Command(c)));
             HE::Unit {
@@ -1164,7 +1151,7 @@ fn exp_impl(
             } = *call;
             let expected_type = H::Type_::from_vec(eloc, single_types(context, parameter_types));
             let htys = base_types(context, type_arguments);
-            let harg = exp(context, result, Some(&expected_type), *arguments);
+            let harg = exp(context, result, Some(&expected_type), arguments);
             let call = H::ModuleCall {
                 module,
                 name,
@@ -1177,15 +1164,15 @@ fn exp_impl(
         TE::Builtin(bf, targ) => builtin(context, result, eloc, *bf, targ),
         TE::Vector(vec_loc, n, tty, targ) => {
             let ty = Box::new(base_type(context, *tty));
-            let arg = exp(context, result, None, *targ);
+            let arg = exp(context, result, None, targ);
             HE::Vector(vec_loc, n, ty, arg)
         }
         TE::Dereference(te) => {
-            let e = exp(context, result, None, *te);
+            let e = exp(context, result, None, te);
             HE::Dereference(e)
         }
         TE::UnaryExp(op, te) => {
-            let e = exp(context, result, None, *te);
+            let e = exp(context, result, None, te);
             HE::UnaryExp(op, e)
         }
 
@@ -1246,7 +1233,7 @@ fn exp_impl(
                     }
                     let bt = base_type(context, bt);
                     let t = H::Type_::base(bt.clone());
-                    let ef = exp_(context, result, Some(&t), tf);
+                    let ef = exp(context, result, Some(&t), Box::new(tf));
                     assert!(fields.get(decl_idx).unwrap().is_none());
                     let move_tmp = bind_exp(context, result, ef);
                     fields[decl_idx] = Some((f, bt, move_tmp))
@@ -1297,11 +1284,11 @@ fn exp_impl(
             HE::ExpList(items)
         }
         TE::Borrow(mut_, te, f) => {
-            let e = exp(context, result, None, *te);
+            let e = exp(context, result, None, te);
             HE::Borrow(mut_, e, f)
         }
         TE::TempBorrow(mut_, te) => {
-            let eb = exp_(context, result, None, *te);
+            let eb = exp(context, result, None, te);
             let tmp = match bind_exp_impl(context, result, eb, true).exp.value {
                 HE::Move {
                     annotation: MoveOpAnnotation::InferredLastUsage,
@@ -1313,7 +1300,7 @@ fn exp_impl(
         }
         TE::Cast(te, rhs_ty) => {
             use N::BuiltinTypeName_ as BT;
-            let e = exp(context, result, None, *te);
+            let e = exp(context, result, None, te);
             let bt = match rhs_ty.value.builtin_name() {
                 Some(bt @ sp!(_, BT::U8))
                 | Some(bt @ sp!(_, BT::U64))
@@ -1324,7 +1311,7 @@ fn exp_impl(
         }
         TE::Annotate(te, rhs_ty) => {
             let expected_ty = type_(context, *rhs_ty);
-            return exp_(context, result, Some(&expected_ty), *te);
+            return exp(context, result, Some(&expected_ty), te);
         }
         TE::Spec(u, tused_locals) => {
             let used_locals = tused_locals
@@ -1344,7 +1331,7 @@ fn exp_impl(
 
         TE::IfElse(..) | TE::BinopExp(..) => unreachable!(),
     };
-    H::exp(ty, sp(eloc, res))
+    Box::new(H::exp(ty, sp(eloc, res)))
 }
 
 fn exp_evaluation_order(
@@ -1356,7 +1343,12 @@ fn exp_evaluation_order(
     let mut e_results = vec![];
     for (te, expected_type) in tes.into_iter().rev() {
         let mut tmp_result = Block::new();
-        let e = *exp(context, &mut tmp_result, expected_type.as_ref(), te);
+        let e = exp(
+            context,
+            &mut tmp_result,
+            expected_type.as_ref(),
+            Box::new(te),
+        );
         // If evaluating this expression introduces statements, all previous exps need to be bound
         // to preserve left-to-right evaluation order
         let adds_to_result = !tmp_result.is_empty();
@@ -1364,7 +1356,7 @@ fn exp_evaluation_order(
         let e = if needs_binding {
             bind_exp(context, &mut tmp_result, e)
         } else {
-            e
+            *e
         };
         e_results.push((tmp_result, e));
 
@@ -1391,7 +1383,7 @@ fn make_temps(context: &mut Context, loc: Loc, ty: H::Type) -> Vec<(Var, H::Sing
     }
 }
 
-fn bind_exp(context: &mut Context, result: &mut Block, e: H::Exp) -> H::Exp {
+fn bind_exp(context: &mut Context, result: &mut Block, e: Box<H::Exp>) -> H::Exp {
     bind_exp_impl(context, result, e, false)
 }
 
@@ -1399,7 +1391,7 @@ fn bind_exp_(
     result: &mut Block,
     loc: Loc,
     tmps: Vec<(Var, H::SingleType)>,
-    e: H::Exp,
+    e: Box<H::Exp>,
 ) -> H::UnannotatedExp_ {
     bind_exp_impl_(result, loc, tmps, e, false)
 }
@@ -1407,11 +1399,11 @@ fn bind_exp_(
 fn bind_exp_impl(
     context: &mut Context,
     result: &mut Block,
-    e: H::Exp,
+    e: Box<H::Exp>,
     bind_unreachable: bool,
 ) -> H::Exp {
     if matches!(&e.exp.value, H::UnannotatedExp_::Unreachable) && !bind_unreachable {
-        return e;
+        return *e;
     }
     let loc = e.exp.loc;
     let ty = e.ty.clone();
@@ -1426,7 +1418,7 @@ fn bind_exp_impl_(
     result: &mut Block,
     loc: Loc,
     tmps: Vec<(Var, H::SingleType)>,
-    e: H::Exp,
+    e: Box<H::Exp>,
     bind_unreachable: bool,
 ) -> H::UnannotatedExp_ {
     use H::{Command_ as C, Statement_ as S, UnannotatedExp_ as E};
@@ -1445,7 +1437,7 @@ fn bind_exp_impl_(
         .iter()
         .map(|(v, st)| sp(v.loc(), H::LValue_::Var(*v, Box::new(st.clone()))))
         .collect();
-    let asgn = sp(loc, C::Assign(lvalues, Box::new(e)));
+    let asgn = sp(loc, C::Assign(lvalues, e));
     result.push_back(sp(loc, S::Command(asgn)));
 
     let mut etemps = tmps
@@ -1496,27 +1488,27 @@ fn builtin(
                 texpected_tys,
             );
             let expected_ty = type_(context, sp(loc, texpected_ty_));
-            let arg = exp(context, result, Some(&expected_ty), *targ);
+            let arg = exp(context, result, Some(&expected_ty), targ);
             let ty = base_type(context, bt);
             E::Builtin(Box::new(sp(loc, HB::MoveTo(ty))), arg)
         }
         TB::MoveFrom(bt) => {
             let ty = base_type(context, bt);
-            let arg = exp(context, result, None, *targ);
+            let arg = exp(context, result, None, targ);
             E::Builtin(Box::new(sp(loc, HB::MoveFrom(ty))), arg)
         }
         TB::BorrowGlobal(mut_, bt) => {
             let ty = base_type(context, bt);
-            let arg = exp(context, result, None, *targ);
+            let arg = exp(context, result, None, targ);
             E::Builtin(Box::new(sp(loc, HB::BorrowGlobal(mut_, ty))), arg)
         }
         TB::Exists(bt) => {
             let ty = base_type(context, bt);
-            let arg = exp(context, result, None, *targ);
+            let arg = exp(context, result, None, targ);
             E::Builtin(Box::new(sp(loc, HB::Exists(ty))), arg)
         }
         TB::Freeze(_bt) => {
-            let arg = exp(context, result, None, *targ);
+            let arg = exp(context, result, None, targ);
             E::Freeze(arg)
         }
         TB::Assert(_) => unreachable!(),
@@ -1728,75 +1720,59 @@ fn bind_for_short_circuit_sequence(seq: &T::Sequence) -> bool {
 // Trailing semicolon
 //**************************************************************************************************
 
+enum TrailingCase {
+    Trailing(Loc),
+    None,
+}
+
 fn check_trailing_unit(context: &mut Context, block: &mut Block) {
+    use TrailingCase as TC;
     use H::{Command_ as C, Statement_ as S, UnannotatedExp_ as E};
     macro_rules! hcmd {
         ($loc:pat, $cmd:pat) => {
             sp!(_, S::Command(sp!($loc, $cmd)))
         };
     }
-    macro_rules! hignored {
-        ($loc:pat, $e:pat) => {
-            hcmd!(
-                _,
-                C::IgnoreAndPop {
-                    exp: H::Exp {
-                        exp: sp!($loc, $e),
-                        ..
-                    },
-                    ..
-                }
-            )
-        };
+
+    fn trailing_case(s: &H::Statement) -> TrailingCase {
+        match s {
+            hcmd!(_, C::IgnoreAndPop { exp, .. }) => match &exp.exp {
+                sp!(
+                    uloc,
+                    E::Unit {
+                        case: H::UnitCase::Trailing
+                    }
+                ) => TC::Trailing(*uloc),
+                _ => TC::None,
+            },
+            hcmd!(_, C::Return { exp, .. }) => match &exp.exp {
+                sp!(
+                    uloc,
+                    E::Unit {
+                        case: H::UnitCase::Trailing
+                    }
+                ) => TC::Trailing(*uloc),
+                _ => TC::None,
+            },
+            _ => TC::None,
+        }
     }
-    macro_rules! trailing {
-        ($uloc: pat) => {
-            hcmd!(
-                _,
-                C::IgnoreAndPop {
-                    exp: H::Exp {
-                        exp: sp!(
-                            $uloc,
-                            E::Unit {
-                                case: H::UnitCase::Trailing
-                            }
-                        ),
-                        ..
-                    },
-                    ..
-                }
-            )
-        };
-    }
-    macro_rules! trailing_returned {
-        ($uloc:pat) => {
-            hcmd!(
-                _,
-                C::Return {
-                    exp: H::Exp {
-                        exp: sp!(
-                            $uloc,
-                            E::Unit {
-                                case: H::UnitCase::Trailing
-                            }
-                        ),
-                        ..
-                    },
-                    ..
-                }
-            )
-        };
-    }
+
     fn divergent_block(block: &Block) -> bool {
+        let back = block.back();
+
         matches!(
-            block.back(),
+            back,
             Some(hcmd!(_, C::Break))
                 | Some(hcmd!(_, C::Continue))
                 | Some(hcmd!(_, C::Abort(_)))
                 | Some(hcmd!(_, C::Return { .. }))
-                | Some(hignored!(_, E::Unreachable))
+        ) || matches!(
+            back,
+            Some(hcmd!(_,C::IgnoreAndPop { exp:e, ..})) if matches!(&(&**e).exp.value, E::Unreachable)
         )
     }
+
     macro_rules! invalid_trailing_unit {
         ($context:ident, $loc:expr, $uloc:expr) => {{
             let semi_msg = "Invalid trailing ';'";
@@ -1820,7 +1796,7 @@ fn check_trailing_unit(context: &mut Context, block: &mut Block) {
     if len < 2 {
         return;
     }
-    match (&block[len - 2], &block[len - 1]) {
+    match (&block[len - 2], trailing_case(&block[len - 1])) {
         (
             sp!(
                 loc,
@@ -1830,38 +1806,23 @@ fn check_trailing_unit(context: &mut Context, block: &mut Block) {
                     ..
                 }
             ),
-            trailing!(uloc),
-        )
-        | (
-            sp!(
-                loc,
-                S::IfElse {
-                    if_block,
-                    else_block,
-                    ..
-                }
-            ),
-            trailing_returned!(uloc),
+            TC::Trailing(uloc),
         ) if divergent_block(if_block) && divergent_block(else_block) => {
-            invalid_trailing_unit!(context, *loc, *uloc)
+            invalid_trailing_unit!(context, *loc, uloc)
         }
-        (sp!(loc, S::Loop { has_break, .. }), trailing!(uloc))
-        | (sp!(loc, S::Loop { has_break, .. }), trailing_returned!(uloc))
-            if !has_break =>
+        (sp!(loc, S::Loop { has_break, .. }), TC::Trailing(uloc)) if !has_break => {
+            invalid_trailing_unit!(context, *loc, uloc)
+        }
+        (hcmd!(loc, C::Break), TC::Trailing(uloc))
+        | (hcmd!(loc, C::Continue), TC::Trailing(uloc))
+        | (hcmd!(loc, C::Abort(_)), TC::Trailing(uloc))
+        | (hcmd!(loc, C::Return { .. }), TC::Trailing(uloc)) => {
+            invalid_trailing_unit!(context, *loc, uloc)
+        }
+        (hcmd!(loc, C::IgnoreAndPop { exp: e, .. }), TC::Trailing(uloc))
+            if matches!(&(&**e).exp.value, E::Unreachable) =>
         {
-            invalid_trailing_unit!(context, *loc, *uloc)
-        }
-        (hcmd!(loc, C::Break), trailing!(uloc))
-        | (hcmd!(loc, C::Break), trailing_returned!(uloc))
-        | (hcmd!(loc, C::Continue), trailing!(uloc))
-        | (hcmd!(loc, C::Continue), trailing_returned!(uloc))
-        | (hcmd!(loc, C::Abort(_)), trailing!(uloc))
-        | (hcmd!(loc, C::Abort(_)), trailing_returned!(uloc))
-        | (hcmd!(loc, C::Return { .. }), trailing!(uloc))
-        | (hcmd!(loc, C::Return { .. }), trailing_returned!(uloc))
-        | (hignored!(loc, E::Unreachable), trailing!(uloc))
-        | (hignored!(loc, E::Unreachable), trailing_returned!(uloc)) => {
-            invalid_trailing_unit!(context, *loc, *uloc)
+            invalid_trailing_unit!(context, *loc, uloc)
         }
         _ => (),
     };

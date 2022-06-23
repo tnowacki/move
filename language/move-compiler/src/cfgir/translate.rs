@@ -273,7 +273,7 @@ fn constant_(
     signature: H::BaseType,
     locals: UniqueMap<Var, H::SingleType>,
     block: H::Block,
-) -> Option<H::Exp> {
+) -> Option<Box<H::Exp>> {
     use H::Command_ as C;
     const ICE_MSG: &str = "ICE invalid constant should have been blocked in typing";
 
@@ -350,7 +350,7 @@ fn check_constant_value(context: &mut Context, e: &H::Exp) {
     }
 }
 
-fn move_value_from_exp(e: H::Exp) -> Option<MoveValue> {
+fn move_value_from_exp(e: Box<H::Exp>) -> Option<MoveValue> {
     use H::UnannotatedExp_ as E;
     match e.exp.value {
         E::Value(v) => Some(move_value_from_value(v)),
@@ -541,7 +541,7 @@ fn block_(context: &mut Context, cur_label: &mut Label, blocks: H::Block) -> Bas
 
                 // If cond
                 let jump_if = C::JumpIf {
-                    cond: *cond,
+                    cond,
                     if_true,
                     if_false,
                 };
@@ -586,7 +586,7 @@ fn block_(context: &mut Context, cur_label: &mut Label, blocks: H::Block) -> Bas
                     basic_block = block_(context, cur_label, hcond_block);
                 }
                 let jump_if = C::JumpIf {
-                    cond: *cond,
+                    cond,
                     if_true: loop_body,
                     if_false: loop_end,
                 };

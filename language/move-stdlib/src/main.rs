@@ -6,9 +6,11 @@ use move_stdlib::utils::time_it;
 
 fn main() {
     // Generate documentation
+    println!("enter");
     {
         time_it("Generating stdlib documentation", || {
             std::fs::remove_dir_all(&move_stdlib::move_stdlib_docs_full_path()).unwrap_or(());
+            println!("rm?");
             //std::fs::create_dir_all(&move_stdlib::move_stdlib_docs_full_path()).unwrap();
             move_stdlib::build_stdlib_doc(&move_stdlib::move_stdlib_docs_full_path());
         });

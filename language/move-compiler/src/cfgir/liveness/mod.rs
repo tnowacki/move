@@ -495,7 +495,7 @@ fn pop_ref(loc: Loc, var: Var, ty: SingleType) -> Command {
         annotation: MoveOpAnnotation::InferredLastUsage,
         var,
     };
-    let move_e = H::exp(Type_::single(ty), sp(loc, move_e_));
+    let move_e = Box::new(H::exp(Type_::single(ty), sp(loc, move_e_)));
     let pop_ = C::IgnoreAndPop {
         pop_num: 1,
         exp: move_e,

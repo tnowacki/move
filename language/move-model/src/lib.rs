@@ -115,9 +115,11 @@ pub fn run_model_builder_with_options_and_compilation_flags<
     let address_aliases = create_file_to_address_aliases(env.symbol_pool(), &move_sources, &deps);
 
     // Step 1: parse the program to get comments and a separation of targets and dependencies.
+    println!("makin compiler?");
     let (files, comments_and_compiler_res) = Compiler::from_package_paths(move_sources, deps)
         .set_flags(flags)
         .run::<PASS_PARSER>()?;
+    println!("finished compiler?");
     let (comment_map, compiler) = match comments_and_compiler_res {
         Err(diags) => {
             // Add source files so that the env knows how to translate locations of parse errors
@@ -224,15 +226,18 @@ pub fn run_model_builder_with_options_and_compilation_flags<
         E::Program { modules, scripts }
     };
     // Run the compiler fully to the compiled units
+    println!("expansion");
     let units = match compiler
         .at_expansion(expansion_ast.clone())
         .run::<PASS_COMPILATION>()
     {
         Err(diags) => {
+            println!("diags?");
             add_move_lang_diagnostics(&mut env, diags);
             return Ok(env);
         }
         Ok(compiler) => {
+            println!("units?");
             let (units, warnings) = compiler.into_compiled_units();
             if !warnings.is_empty() {
                 // NOTE: these diagnostics are just warnings. it should be feasible to continue the
@@ -249,7 +254,7 @@ pub fn run_model_builder_with_options_and_compilation_flags<
         add_move_lang_diagnostics(&mut env, diags);
         return Ok(env);
     }
-
+    println!("finished comp");
     // Now that it is known that the program has no errors, run the spec checker on verified units
     // plus expanded AST. This will populate the environment including any errors.
     run_spec_checker(&mut env, units, expansion_ast);

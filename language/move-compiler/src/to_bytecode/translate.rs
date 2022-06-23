@@ -871,15 +871,15 @@ fn command(context: &mut Context, code: &mut IR::BytecodeBlock, sp!(loc, cmd_): 
             code.push(sp(loc, B::WriteRef));
         }
         C::Abort(ecode) => {
-            exp_(context, code, ecode);
+            exp(context, code, ecode);
             code.push(sp(loc, B::Abort));
         }
         C::Return { exp: e, .. } => {
-            exp_(context, code, e);
+            exp(context, code, e);
             code.push(sp(loc, B::Ret));
         }
         C::IgnoreAndPop { pop_num, exp: e } => {
-            exp_(context, code, e);
+            exp(context, code, e);
             for _ in 0..pop_num {
                 code.push(sp(loc, B::Pop));
             }
@@ -890,7 +890,7 @@ fn command(context: &mut Context, code: &mut IR::BytecodeBlock, sp!(loc, cmd_): 
             if_true,
             if_false,
         } => {
-            exp_(context, code, cond);
+            exp(context, code, cond);
             code.push(sp(loc, B::BrTrue(label(if_true))));
             code.push(sp(loc, B::Branch(label(if_false))));
         }
