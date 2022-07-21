@@ -426,7 +426,7 @@ impl StructLayoutBuilder {
         layout_type: LayoutType,
     ) -> Result<MoveStructLayout> {
         let module = match resolver.get_module_by_id(declaring_module) {
-            Err(_) | Ok(None) => bail!("Could not find module"),
+            Err(_) | Ok(None) => panic!("Could not find module"),
             Ok(Some(m)) => m,
         };
         let def = module
