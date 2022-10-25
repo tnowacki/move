@@ -671,7 +671,7 @@ fn constant(context: &mut Context, _name: ConstantName, econstant: E::Constant) 
         value: evalue,
     } = econstant;
     let signature = type_(context, esignature);
-    let value = exp_(context, evalue);
+    let value = *exp(context, Box::new(evalue));
     N::Constant {
         attributes,
         loc,
@@ -754,32 +754,42 @@ fn type_(context: &mut Context, sp!(loc, ety_): E::Type) -> N::Type {
             assert!(context.env.has_errors());
             NT::UnresolvedError
         }
-        ET::Apply(sp!(_, EN::Name(n)), tys) => match context.resolve_unscoped_type(&n) {
-            None => {
-                assert!(context.env.has_errors());
-                NT::UnresolvedError
-            }
-            Some(RT::BuiltinType) => {
-                let bn_ = N::BuiltinTypeName_::resolve(&n.value).unwrap();
-                let name_f = || format!("{}", &bn_);
-                let arity = bn_.tparam_constraints(loc).len();
-                let tys = types(context, tys);
-                let tys = check_type_argument_arity(context, loc, name_f, tys, arity);
-                NT::builtin_(sp(loc, bn_), tys)
-            }
-            Some(RT::TParam(_, tp)) => {
-                if !tys.is_empty() {
-                    context.env.add_diag(diag!(
-                        NameResolution::NamePositionMismatch,
-                        (loc, "Generic type parameters cannot take type arguments"),
-                    ));
+        ET::Apply(ma, tys) if matches!(&*ma, sp!(_, EN::Name(_))) => {
+            let n = match *ma {
+                sp!(_, EN::Name(n)) => n,
+                sp!(_, EN::ModuleAccess(_, _)) => unreachable!(),
+            };
+            match context.resolve_unscoped_type(&n) {
+                None => {
+                    assert!(context.env.has_errors());
                     NT::UnresolvedError
-                } else {
-                    NT::Param(tp)
+                }
+                Some(RT::BuiltinType) => {
+                    let bn_ = N::BuiltinTypeName_::resolve(&n.value).unwrap();
+                    let name_f = || format!("{}", &bn_);
+                    let arity = bn_.tparam_constraints(loc).len();
+                    let tys = types(context, tys);
+                    let tys = check_type_argument_arity(context, loc, name_f, tys, arity);
+                    NT::builtin_(sp(loc, bn_), tys)
+                }
+                Some(RT::TParam(_, tp)) => {
+                    if !tys.is_empty() {
+                        context.env.add_diag(diag!(
+                            NameResolution::NamePositionMismatch,
+                            (loc, "Generic type parameters cannot take type arguments"),
+                        ));
+                        NT::UnresolvedError
+                    } else {
+                        NT::Param(tp)
+                    }
                 }
             }
-        },
-        ET::Apply(sp!(nloc, EN::ModuleAccess(m, n)), tys) => {
+        }
+        ET::Apply(ma, tys) => {
+            let (nloc, m, n) = match *ma {
+                sp!(nloc, EN::ModuleAccess(m, n)) => (nloc, m, n),
+                sp!(_, EN::Name(_)) => unreachable!(),
+            };
             match context.resolve_module_type(nloc, &m, &n) {
                 None => {
                     assert!(context.env.has_errors());
@@ -846,7 +856,7 @@ fn sequence_item(context: &mut Context, sp!(loc, ns_): E::SequenceItem) -> N::Se
     use N::SequenceItem_ as NS;
 
     let s_ = match ns_ {
-        ES::Seq(e) => NS::Seq(exp_(context, e)),
+        ES::Seq(e) => NS::Seq(*exp(context, Box::new(e))),
         ES::Declare(b, ty_opt) => {
             let bind_opt = bind_list(context, b);
             let tys = ty_opt.map(|t| type_(context, t));
@@ -860,13 +870,13 @@ fn sequence_item(context: &mut Context, sp!(loc, ns_): E::SequenceItem) -> N::Se
         }
         ES::Bind(b, e) => {
             let bind_opt = bind_list(context, b);
-            let e = exp_(context, e);
+            let e = exp(context, Box::new(e));
             match bind_opt {
                 None => {
                     assert!(context.env.has_errors());
                     NS::Seq(sp(loc, N::Exp_::UnresolvedError))
                 }
-                Some(bind) => NS::Bind(bind, e),
+                Some(bind) => NS::Bind(bind, *e),
             }
         }
     };
@@ -878,17 +888,13 @@ fn call_args(context: &mut Context, sp!(loc, es): Spanned<Vec<E::Exp>>) -> Spann
 }
 
 fn exps(context: &mut Context, es: Vec<E::Exp>) -> Vec<N::Exp> {
-    es.into_iter().map(|e| exp_(context, e)).collect()
+    es.into_iter().map(|e| *exp(context, Box::new(e))).collect()
 }
 
-fn exp(context: &mut Context, e: E::Exp) -> Box<N::Exp> {
-    Box::new(exp_(context, e))
-}
-
-fn exp_(context: &mut Context, e: E::Exp) -> N::Exp {
+fn exp(context: &mut Context, e: Box<E::Exp>) -> Box<N::Exp> {
     use E::Exp_ as EE;
     use N::Exp_ as NE;
-    let sp!(eloc, e_) = e;
+    let sp!(eloc, e_) = *e;
     let ne_ = match e_ {
         EE::Unit { trailing } => NE::Unit { trailing },
         EE::Value(val) => NE::Value(val),
@@ -903,16 +909,14 @@ fn exp_(context: &mut Context, e: E::Exp) -> N::Exp {
         }
         EE::Name(ma, None) => access_constant(context, ma),
 
-        EE::IfElse(eb, et, ef) => {
-            NE::IfElse(exp(context, *eb), exp(context, *et), exp(context, *ef))
-        }
-        EE::While(eb, el) => NE::While(exp(context, *eb), exp(context, *el)),
-        EE::Loop(el) => NE::Loop(exp(context, *el)),
+        EE::IfElse(eb, et, ef) => NE::IfElse(exp(context, eb), exp(context, et), exp(context, ef)),
+        EE::While(eb, el) => NE::While(exp(context, eb), exp(context, el)),
+        EE::Loop(el) => NE::Loop(exp(context, el)),
         EE::Block(seq) => NE::Block(sequence(context, seq)),
 
         EE::Assign(a, e) => {
             let na_opt = assign_list(context, a);
-            let ne = exp(context, *e);
+            let ne = exp(context, e);
             match na_opt {
                 None => {
                     assert!(context.env.has_errors());
@@ -923,7 +927,7 @@ fn exp_(context: &mut Context, e: E::Exp) -> N::Exp {
         }
         EE::FieldMutate(edotted, er) => {
             let ndot_opt = dotted(context, *edotted);
-            let ner = exp(context, *er);
+            let ner = exp(context, er);
             match ndot_opt {
                 None => {
                     assert!(context.env.has_errors());
@@ -933,19 +937,19 @@ fn exp_(context: &mut Context, e: E::Exp) -> N::Exp {
             }
         }
         EE::Mutate(el, er) => {
-            let nel = exp(context, *el);
-            let ner = exp(context, *er);
+            let nel = exp(context, el);
+            let ner = exp(context, er);
             NE::Mutate(nel, ner)
         }
 
-        EE::Return(es) => NE::Return(exp(context, *es)),
-        EE::Abort(es) => NE::Abort(exp(context, *es)),
+        EE::Return(es) => NE::Return(exp(context, es)),
+        EE::Abort(es) => NE::Abort(exp(context, es)),
         EE::Break => NE::Break,
         EE::Continue => NE::Continue,
 
-        EE::Dereference(e) => NE::Dereference(exp(context, *e)),
-        EE::UnaryExp(uop, e) => NE::UnaryExp(uop, exp(context, *e)),
-        EE::BinopExp(e1, bop, e2) => NE::BinopExp(exp(context, *e1), bop, exp(context, *e2)),
+        EE::Dereference(e) => NE::Dereference(exp(context, e)),
+        EE::UnaryExp(uop, e) => NE::UnaryExp(uop, exp(context, e)),
+        EE::BinopExp(e1, bop, e2) => NE::BinopExp(exp(context, e1), bop, exp(context, e2)),
 
         EE::Pack(tn, etys_opt, efields) => {
             match context.resolve_struct_name(eloc, "construction", tn, etys_opt) {
@@ -957,7 +961,7 @@ fn exp_(context: &mut Context, e: E::Exp) -> N::Exp {
                     m,
                     sn,
                     tys_opt,
-                    efields.map(|_, (idx, e)| (idx, exp_(context, e))),
+                    efields.map(|_, (idx, e)| (idx, *exp(context, Box::new(e)))),
                 ),
             }
         }
@@ -975,7 +979,7 @@ fn exp_(context: &mut Context, e: E::Exp) -> N::Exp {
                 Some(d) => NE::Borrow(mut_, d),
             },
             e => {
-                let ne = exp(context, e);
+                let ne = exp(context, Box::new(e));
                 NE::Borrow(mut_, sp(ne.loc, N::ExpDotted_::Exp(ne)))
             }
         },
@@ -988,8 +992,8 @@ fn exp_(context: &mut Context, e: E::Exp) -> N::Exp {
             Some(d) => NE::DerefBorrow(d),
         },
 
-        EE::Cast(e, t) => NE::Cast(exp(context, *e), type_(context, t)),
-        EE::Annotate(e, t) => NE::Annotate(exp(context, *e), type_(context, t)),
+        EE::Cast(e, t) => NE::Cast(exp(context, e), type_(context, t)),
+        EE::Annotate(e, t) => NE::Annotate(exp(context, e), type_(context, t)),
 
         EE::Call(sp!(mloc, ma_), true, tys_opt, rhs) => {
             use E::ModuleAccess_ as EA;
@@ -1072,7 +1076,7 @@ fn exp_(context: &mut Context, e: E::Exp) -> N::Exp {
             panic!("ICE unexpected specification construct")
         }
     };
-    sp(eloc, ne_)
+    Box::new(sp(eloc, ne_))
 }
 
 fn access_constant(context: &mut Context, ma: E::ModuleAccess) -> N::Exp_ {
@@ -1085,8 +1089,7 @@ fn access_constant(context: &mut Context, ma: E::ModuleAccess) -> N::Exp_ {
     }
 }
 
-fn dotted(context: &mut Context, edot: E::ExpDotted) -> Option<N::ExpDotted> {
-    let sp!(loc, edot_) = edot;
+fn dotted(context: &mut Context, sp!(loc, edot_): E::ExpDotted) -> Option<N::ExpDotted> {
     let nedot_ = match edot_ {
         E::ExpDotted_::Exp(e) => {
             let ne = exp(context, e);

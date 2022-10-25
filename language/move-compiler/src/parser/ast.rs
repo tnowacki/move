@@ -69,11 +69,10 @@ pub struct PackageDefinition {
 }
 
 #[derive(Debug, Clone)]
-#[allow(clippy::large_enum_variant)]
 pub enum Definition {
-    Module(ModuleDefinition),
-    Address(AddressDefinition),
-    Script(Script),
+    Module(Box<ModuleDefinition>),
+    Address(Box<AddressDefinition>),
+    Script(Box<Script>),
 }
 
 #[derive(Debug, Clone)]
@@ -558,7 +557,6 @@ pub enum QuantKind_ {
 pub type QuantKind = Spanned<QuantKind_>;
 
 #[derive(Debug, Clone, PartialEq)]
-#[allow(clippy::large_enum_variant)]
 pub enum Exp_ {
     Value(Value),
     // move(x)
@@ -659,7 +657,6 @@ pub type Sequence = (
     Box<Option<Exp>>,
 );
 #[derive(Debug, Clone, PartialEq)]
-#[allow(clippy::large_enum_variant)]
 pub enum SequenceItem_ {
     // e;
     Seq(Box<Exp>),

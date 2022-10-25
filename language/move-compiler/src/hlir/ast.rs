@@ -166,9 +166,8 @@ pub type Type = Spanned<Type_>;
 //**************************************************************************************************
 
 #[derive(Debug, PartialEq, Clone)]
-#[allow(clippy::large_enum_variant)]
 pub enum Statement_ {
-    Command(Command),
+    Command(Box<Command>),
     IfElse {
         cond: Box<Exp>,
         if_block: Block,
@@ -199,7 +198,6 @@ pub struct Label(pub usize);
 //**************************************************************************************************
 
 #[derive(Debug, PartialEq, Clone)]
-#[allow(clippy::large_enum_variant)]
 pub enum Command_ {
     Assign(Vec<LValue>, Box<Exp>),
     Mutate(Box<Exp>, Box<Exp>),

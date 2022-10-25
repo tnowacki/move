@@ -526,7 +526,7 @@ fn block_(context: &mut Context, cur_label: &mut Label, blocks: H::Block) -> Bas
             S::Command(mut cmd) => {
                 command(context, &mut cmd);
                 let is_terminal = cmd.value.is_terminal();
-                basic_block.push_back(cmd);
+                basic_block.push_back(*cmd);
                 if is_terminal {
                     finish_block!(next_label: context.new_label());
                 }

@@ -143,9 +143,9 @@ fn check_has_unit_test_module(compilation_env: &mut CompilationEnv, prog: &P::Pr
             .next()
         {
             let loc = match def {
-                P::Definition::Module(P::ModuleDefinition { name, .. }) => name.0.loc,
-                P::Definition::Address(P::AddressDefinition { loc, .. })
-                | P::Definition::Script(P::Script { loc, .. }) => *loc,
+                P::Definition::Module(m) => m.name.0.loc,
+                P::Definition::Address(a) => a.loc,
+                P::Definition::Script(s) => s.loc,
             };
             compilation_env.add_diag(diag!(
                 Attributes::InvalidTest,

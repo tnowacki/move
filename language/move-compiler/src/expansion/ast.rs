@@ -332,11 +332,10 @@ pub enum ModuleAccess_ {
 pub type ModuleAccess = Spanned<ModuleAccess_>;
 
 #[derive(Debug, Clone, PartialEq)]
-#[allow(clippy::large_enum_variant)]
 pub enum Type_ {
     Unit,
     Multiple(Vec<Type>),
-    Apply(ModuleAccess, Vec<Type>),
+    Apply(Box<ModuleAccess>, Vec<Type>),
     Ref(bool, Box<Type>),
     Fun(Vec<Type>, Box<Type>),
     UnresolvedError,
@@ -362,9 +361,8 @@ pub type LValueWithRangeList_ = Vec<LValueWithRange>;
 pub type LValueWithRangeList = Spanned<LValueWithRangeList_>;
 
 #[derive(Debug, Clone, PartialEq)]
-#[allow(clippy::large_enum_variant)]
 pub enum ExpDotted_ {
-    Exp(Exp),
+    Exp(Box<Exp>),
     Dot(Box<ExpDotted>, Name),
 }
 pub type ExpDotted = Spanned<ExpDotted_>;
@@ -389,7 +387,6 @@ pub enum Value_ {
 pub type Value = Spanned<Value_>;
 
 #[derive(Debug, Clone, PartialEq)]
-#[allow(clippy::large_enum_variant)]
 pub enum Exp_ {
     Value(Value),
     Move(Var),

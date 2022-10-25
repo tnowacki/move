@@ -472,12 +472,16 @@ fn script(
     context: &mut Context,
     scripts: &mut Vec<E::Script>,
     package_name: Option<Symbol>,
-    pscript: P::Script,
+    pscript: Box<P::Script>,
 ) {
     scripts.push(script_(context, package_name, pscript))
 }
 
-fn script_(context: &mut Context, package_name: Option<Symbol>, pscript: P::Script) -> E::Script {
+fn script_(
+    context: &mut Context,
+    package_name: Option<Symbol>,
+    pscript: Box<P::Script>,
+) -> E::Script {
     assert!(context.address == None);
     assert!(context.is_source_definition);
     let P::Script {
@@ -487,7 +491,7 @@ fn script_(context: &mut Context, package_name: Option<Symbol>, pscript: P::Scri
         constants: pconstants,
         function: pfunction,
         specs: pspecs,
-    } = pscript;
+    } = *pscript;
 
     let attributes = flatten_attributes(context, AttributePosition::Script, attributes);
     let new_scope = uses(context, puses);
@@ -1537,7 +1541,7 @@ fn type_(context: &mut Context, sp!(loc, pt_): P::Type) -> E::Type {
                     assert!(context.env.has_errors());
                     ET::UnresolvedError
                 }
-                Some(n) => ET::Apply(n, tyargs),
+                Some(n) => ET::Apply(Box::new(n), tyargs),
             }
         }
         PT::Ref(mut_, inner) => ET::Ref(mut_, Box::new(type_(context, *inner))),
@@ -1967,7 +1971,7 @@ fn exp_dotted(context: &mut Context, sp!(loc, pdotted_): P::Exp) -> Option<E::Ex
             let lhs = exp_dotted(context, *plhs)?;
             EE::Dot(Box::new(lhs), field)
         }
-        pe_ => EE::Exp(exp_(context, sp(loc, pe_))),
+        pe_ => EE::Exp(exp(context, sp(loc, pe_))),
     };
     Some(sp(loc, edotted_))
 }

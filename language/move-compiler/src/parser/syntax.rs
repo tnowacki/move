@@ -3202,9 +3202,11 @@ fn parse_file(context: &mut Context) -> Result<Vec<Definition>, Diagnostic> {
     while context.tokens.peek() != Tok::EOF {
         let attributes = parse_attributes(context)?;
         defs.push(match context.tokens.peek() {
-            Tok::Spec | Tok::Module => Definition::Module(parse_module(attributes, context)?),
-            Tok::Script => Definition::Script(parse_script(attributes, context)?),
-            _ => Definition::Address(parse_address_block(attributes, context)?),
+            Tok::Spec | Tok::Module => {
+                Definition::Module(Box::new(parse_module(attributes, context)?))
+            }
+            Tok::Script => Definition::Script(Box::new(parse_script(attributes, context)?)),
+            _ => Definition::Address(Box::new(parse_address_block(attributes, context)?)),
         })
     }
     Ok(defs)
