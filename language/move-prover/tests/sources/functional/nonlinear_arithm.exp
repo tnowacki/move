@@ -1,40 +1,40 @@
 Move prover returns: exiting with verification errors
 error: post-condition does not hold
-    ┌─ tests/sources/functional/nonlinear_arithm.move:226:9
+    ┌─ tests/sources/functional/nonlinear_arithm.move:227:9
     │
-226 │         ensures result == a*b*c + a*b*d + a*b;
+227 │         ensures result == a*b*c + a*b*d + a*b;
     │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     │
-    =     at tests/sources/functional/nonlinear_arithm.move:222: distribution_law_incorrect
+    =     at tests/sources/functional/nonlinear_arithm.move:223: distribution_law_incorrect
     =         a = <redacted>
     =         b = <redacted>
     =         c = <redacted>
     =         d = <redacted>
-    =     at tests/sources/functional/nonlinear_arithm.move:223: distribution_law_incorrect
-    =         result = <redacted>
     =     at tests/sources/functional/nonlinear_arithm.move:224: distribution_law_incorrect
-    =     at tests/sources/functional/nonlinear_arithm.move:226: distribution_law_incorrect (spec)
+    =         result = <redacted>
+    =     at tests/sources/functional/nonlinear_arithm.move:225: distribution_law_incorrect
+    =     at tests/sources/functional/nonlinear_arithm.move:227: distribution_law_incorrect (spec)
 
 error: post-condition does not hold
-    ┌─ tests/sources/functional/nonlinear_arithm.move:212:9
+    ┌─ tests/sources/functional/nonlinear_arithm.move:213:9
     │
-212 │         ensures result != 720;
+213 │         ensures result != 720;
     │         ^^^^^^^^^^^^^^^^^^^^^^
     │
-    =     at tests/sources/functional/nonlinear_arithm.move:201: mul5_incorrect
+    =     at tests/sources/functional/nonlinear_arithm.move:202: mul5_incorrect
     =         a = <redacted>
     =         b = <redacted>
     =         c = <redacted>
     =         d = <redacted>
     =         e = <redacted>
-    =     at tests/sources/functional/nonlinear_arithm.move:203: mul5_incorrect
     =     at tests/sources/functional/nonlinear_arithm.move:204: mul5_incorrect
     =     at tests/sources/functional/nonlinear_arithm.move:205: mul5_incorrect
     =     at tests/sources/functional/nonlinear_arithm.move:206: mul5_incorrect
-    =     at tests/sources/functional/nonlinear_arithm.move:208: mul5_incorrect
-    =         result = <redacted>
+    =     at tests/sources/functional/nonlinear_arithm.move:207: mul5_incorrect
     =     at tests/sources/functional/nonlinear_arithm.move:209: mul5_incorrect
-    =     at tests/sources/functional/nonlinear_arithm.move:212: mul5_incorrect (spec)
+    =         result = <redacted>
+    =     at tests/sources/functional/nonlinear_arithm.move:210: mul5_incorrect
+    =     at tests/sources/functional/nonlinear_arithm.move:213: mul5_incorrect (spec)
 
 error: abort not covered by any of the `aborts_if` clauses
    ┌─ tests/sources/functional/nonlinear_arithm.move:51:5
@@ -111,23 +111,23 @@ error: abort not covered by any of the `aborts_if` clauses
    =         ABORTED
 
 error: abort not covered by any of the `aborts_if` clauses
-    ┌─ tests/sources/functional/nonlinear_arithm.move:148:5
+    ┌─ tests/sources/functional/nonlinear_arithm.move:149:5
     │
-146 │           a * b * c * d * e
+147 │           a * b * c * d * e
     │             - abort happened here with execution failure
-147 │       }
-148 │ ╭     spec overflow_u64_mul_5_incorrect {
-149 │ │         aborts_if false;
-150 │ │     }
+148 │       }
+149 │ ╭     spec overflow_u64_mul_5_incorrect {
+150 │ │         aborts_if false;
+151 │ │     }
     │ ╰─────^
     │
-    =     at tests/sources/functional/nonlinear_arithm.move:145: overflow_u64_mul_5_incorrect
+    =     at tests/sources/functional/nonlinear_arithm.move:146: overflow_u64_mul_5_incorrect
     =         a = <redacted>
     =         b = <redacted>
     =         c = <redacted>
     =         d = <redacted>
     =         e = <redacted>
-    =     at tests/sources/functional/nonlinear_arithm.move:146: overflow_u64_mul_5_incorrect
+    =     at tests/sources/functional/nonlinear_arithm.move:147: overflow_u64_mul_5_incorrect
     =         ABORTED
 
 error: abort not covered by any of the `aborts_if` clauses
@@ -168,21 +168,21 @@ error: abort not covered by any of the `aborts_if` clauses
    =         ABORTED
 
 error: abort not covered by any of the `aborts_if` clauses
-    ┌─ tests/sources/functional/nonlinear_arithm.move:129:5
+    ┌─ tests/sources/functional/nonlinear_arithm.move:130:5
     │
-127 │           a * b * c * d * e
+128 │           a * b * c * d * e
     │             - abort happened here with execution failure
-128 │       }
-129 │ ╭     spec overflow_u8_mul_5_incorrect {
-130 │ │         aborts_if false;
-131 │ │     }
+129 │       }
+130 │ ╭     spec overflow_u8_mul_5_incorrect {
+131 │ │         aborts_if false;
+132 │ │     }
     │ ╰─────^
     │
-    =     at tests/sources/functional/nonlinear_arithm.move:126: overflow_u8_mul_5_incorrect
+    =     at tests/sources/functional/nonlinear_arithm.move:127: overflow_u8_mul_5_incorrect
     =         a = <redacted>
     =         b = <redacted>
     =         c = <redacted>
     =         d = <redacted>
     =         e = <redacted>
-    =     at tests/sources/functional/nonlinear_arithm.move:127: overflow_u8_mul_5_incorrect
+    =     at tests/sources/functional/nonlinear_arithm.move:128: overflow_u8_mul_5_incorrect
     =         ABORTED
