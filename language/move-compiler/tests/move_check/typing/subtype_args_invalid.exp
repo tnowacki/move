@@ -1,3 +1,45 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/subtype_args_invalid.move:4:16
+  │
+4 │     fun mut<T>(x: &mut T) {}
+  │                ^ Unused parameter 'x'. Consider removing or prefixing with an underscore: '_x'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/subtype_args_invalid.move:5:20
+  │
+5 │     fun imm_mut<T>(x: &T, y: &mut T) {}
+  │                    ^ Unused parameter 'x'. Consider removing or prefixing with an underscore: '_x'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/subtype_args_invalid.move:5:27
+  │
+5 │     fun imm_mut<T>(x: &T, y: &mut T) {}
+  │                           ^ Unused parameter 'y'. Consider removing or prefixing with an underscore: '_y'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/subtype_args_invalid.move:6:20
+  │
+6 │     fun mut_imm<T>(x: &mut T, y: &T) {}
+  │                    ^ Unused parameter 'x'. Consider removing or prefixing with an underscore: '_x'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/subtype_args_invalid.move:6:31
+  │
+6 │     fun mut_imm<T>(x: &mut T, y: &T) {}
+  │                               ^ Unused parameter 'y'. Consider removing or prefixing with an underscore: '_y'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/subtype_args_invalid.move:7:20
+  │
+7 │     fun mut_mut<T>(x: &mut T, y: &mut T) {}
+  │                    ^ Unused parameter 'x'. Consider removing or prefixing with an underscore: '_x'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/subtype_args_invalid.move:7:31
+  │
+7 │     fun mut_mut<T>(x: &mut T, y: &mut T) {}
+  │                               ^ Unused parameter 'y'. Consider removing or prefixing with an underscore: '_y'
+
 error[E04006]: invalid subtype
    ┌─ tests/move_check/typing/subtype_args_invalid.move:10:9
    │

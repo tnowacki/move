@@ -1,3 +1,9 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/shadowing_invalid_scope.move:4:15
+  │
+4 │         { let x = false; };
+  │               ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
+
 error[E03009]: unbound variable
   ┌─ tests/move_check/typing/shadowing_invalid_scope.move:5:10
   │

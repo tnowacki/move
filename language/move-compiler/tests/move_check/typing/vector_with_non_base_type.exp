@@ -1,3 +1,9 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/vector_with_non_base_type.move:4:13
+  │
+4 │         let v = vector<&u64>[];
+  │             ^ Unused local variable 'v'. Consider removing or prefixing with an underscore: '_v'
+
 error[E04004]: expected a single non-reference type
   ┌─ tests/move_check/typing/vector_with_non_base_type.move:4:17
   │
@@ -6,6 +12,12 @@ error[E04004]: expected a single non-reference type
   │                 │      │
   │                 │      Expected a single non-reference type, but found: '&u64'
   │                 Invalid 'vector' type
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/vector_with_non_base_type.move:5:13
+  │
+5 │         let v = vector<&mut u64>[];
+  │             ^ Unused local variable 'v'. Consider removing or prefixing with an underscore: '_v'
 
 error[E04004]: expected a single non-reference type
   ┌─ tests/move_check/typing/vector_with_non_base_type.move:5:17
@@ -16,6 +28,12 @@ error[E04004]: expected a single non-reference type
   │                 │      Expected a single non-reference type, but found: '&mut u64'
   │                 Invalid 'vector' type
 
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/vector_with_non_base_type.move:6:13
+  │
+6 │         let v = vector<()>[];
+  │             ^ Unused local variable 'v'. Consider removing or prefixing with an underscore: '_v'
+
 error[E04004]: expected a single non-reference type
   ┌─ tests/move_check/typing/vector_with_non_base_type.move:6:17
   │
@@ -24,6 +42,12 @@ error[E04004]: expected a single non-reference type
   │                 │      │
   │                 │      Expected a single non-reference type, but found: '()'
   │                 Invalid 'vector' type
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/vector_with_non_base_type.move:7:13
+  │
+7 │         let v = vector<(u64, bool)>[];
+  │             ^ Unused local variable 'v'. Consider removing or prefixing with an underscore: '_v'
 
 error[E04004]: expected a single non-reference type
   ┌─ tests/move_check/typing/vector_with_non_base_type.move:7:17

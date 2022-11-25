@@ -1,3 +1,39 @@
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/module_call.move:11:21
+   │
+11 │     public fun bing(b: bool, a: address, x: u64) {
+   │                     ^ Unused parameter 'b'. Consider removing or prefixing with an underscore: '_b'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/module_call.move:11:30
+   │
+11 │     public fun bing(b: bool, a: address, x: u64) {
+   │                              ^ Unused parameter 'a'. Consider removing or prefixing with an underscore: '_a'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/module_call.move:11:42
+   │
+11 │     public fun bing(b: bool, a: address, x: u64) {
+   │                                          ^ Unused parameter 'x'. Consider removing or prefixing with an underscore: '_x'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/module_call.move:25:14
+   │
+25 │     fun bing(b: bool, a: address, x: u64) {
+   │              ^ Unused parameter 'b'. Consider removing or prefixing with an underscore: '_b'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/module_call.move:25:23
+   │
+25 │     fun bing(b: bool, a: address, x: u64) {
+   │                       ^ Unused parameter 'a'. Consider removing or prefixing with an underscore: '_a'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/module_call.move:25:35
+   │
+25 │     fun bing(b: bool, a: address, x: u64) {
+   │                                   ^ Unused parameter 'x'. Consider removing or prefixing with an underscore: '_x'
+
 error[E04016]: too few arguments
    ┌─ tests/move_check/typing/module_call.move:43:18
    │

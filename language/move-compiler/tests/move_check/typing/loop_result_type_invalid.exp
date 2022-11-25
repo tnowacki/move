@@ -20,6 +20,12 @@ error[E04007]: incompatible types
    │         Invalid return expression
    │         Given: '()'
 
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/loop_result_type_invalid.move:15:20
+   │
+15 │         loop { let x = 0; break }
+   │                    ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
+
 error[E04007]: incompatible types
    ┌─ tests/move_check/typing/loop_result_type_invalid.move:19:9
    │
@@ -31,6 +37,18 @@ error[E04007]: incompatible types
    ·
 22 │     fun foo(x: u64) {}
    │                --- Expected: 'u64'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/loop_result_type_invalid.move:22:13
+   │
+22 │     fun foo(x: u64) {}
+   │             ^ Unused parameter 'x'. Consider removing or prefixing with an underscore: '_x'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/loop_result_type_invalid.move:25:13
+   │
+25 │         let x = loop { break };
+   │             ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
 
 error[E04005]: expected a single type
    ┌─ tests/move_check/typing/loop_result_type_invalid.move:25:13
@@ -48,4 +66,16 @@ error[E04007]: incompatible types
    │             │         
    │             Invalid value for binding
    │             Expected: '(_, _)'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/loop_result_type_invalid.move:26:14
+   │
+26 │         let (x, y) = loop { if (false) break };
+   │              ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/loop_result_type_invalid.move:26:17
+   │
+26 │         let (x, y) = loop { if (false) break };
+   │                 ^ Unused local variable 'y'. Consider removing or prefixing with an underscore: '_y'
 

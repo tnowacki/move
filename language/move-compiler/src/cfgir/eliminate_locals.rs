@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::cfg::BlockCFG;
-use crate::{hlir::ast::FunctionSignature, parser::ast::Var};
+use crate::{hlir::ast::FunctionSignature, hlir::ast::Var};
 use std::collections::BTreeSet;
 
 /// returns true if anything changed
@@ -42,7 +42,7 @@ fn count(signature: &FunctionSignature, cfg: &BlockCFG) -> BTreeSet<Var> {
 mod count {
     use crate::{
         hlir::ast::{FunctionSignature, *},
-        parser::ast::{BinOp, UnaryOp, Var},
+        parser::ast::{BinOp, UnaryOp},
     };
     use std::collections::{BTreeMap, BTreeSet};
 
@@ -266,10 +266,7 @@ fn eliminate(cfg: &mut BlockCFG, ssa_temps: BTreeSet<Var>) {
 }
 
 mod eliminate {
-    use crate::{
-        hlir::ast::{self as H, *},
-        parser::ast::Var,
-    };
+    use crate::hlir::ast::{self as H, *};
     use move_ir_types::location::*;
     use std::collections::{BTreeMap, BTreeSet};
 

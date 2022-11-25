@@ -1,3 +1,9 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/spec_block_fail.move:2:22
+  │
+2 │     fun specs_in_fun(x: u64) {
+  │                      ^ Unused parameter 'x'. Consider removing or prefixing with an underscore: '_x'
+
 error[E04007]: incompatible types
   ┌─ tests/move_check/typing/spec_block_fail.move:3:19
   │

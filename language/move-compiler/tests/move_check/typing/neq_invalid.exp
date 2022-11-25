@@ -1,3 +1,15 @@
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/neq_invalid.move:12:12
+   │
+12 │     fun t0(r: &R, r_mut: &mut R, s: S, s_ref: &S, s_mut: &mut S) {
+   │            ^ Unused parameter 'r'. Consider removing or prefixing with an underscore: '_r'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/neq_invalid.move:12:19
+   │
+12 │     fun t0(r: &R, r_mut: &mut R, s: S, s_ref: &S, s_mut: &mut S) {
+   │                   ^^^^^ Unused parameter 'r_mut'. Consider removing or prefixing with an underscore: '_r_mut'
+
 error[E04007]: incompatible types
    ┌─ tests/move_check/typing/neq_invalid.move:13:17
    │

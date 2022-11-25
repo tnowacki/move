@@ -43,6 +43,12 @@ error[E03002]: unbound module
 9 │         x: E::M::S,
   │            ^^^^ Unbound module 'E::M'
 
+warning[W09002]: unused variable
+   ┌─ tests/move_check/expansion/unbound_named_address.move:13:13
+   │
+13 │         let x = F::M::S {};
+   │             ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
+
 error[E03001]: address with no value
    ┌─ tests/move_check/expansion/unbound_named_address.move:13:17
    │
@@ -67,6 +73,12 @@ error[E03002]: unbound module
 14 │         G::M::foo();
    │         ^^^^ Unbound module 'G::M'
 
+warning[W09002]: unused variable
+   ┌─ tests/move_check/expansion/unbound_named_address.move:15:13
+   │
+15 │         let c = H::M::C;
+   │             ^ Unused local variable 'c'. Consider removing or prefixing with an underscore: '_c'
+
 error[E03001]: address with no value
    ┌─ tests/move_check/expansion/unbound_named_address.move:15:17
    │
@@ -78,6 +90,12 @@ error[E03002]: unbound module
    │
 15 │         let c = H::M::C;
    │                 ^^^^ Unbound module 'H::M'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/expansion/unbound_named_address.move:16:13
+   │
+16 │         let a = @I; // suggests declaration
+   │             ^ Unused local variable 'a'. Consider removing or prefixing with an underscore: '_a'
 
 error[E03001]: address with no value
    ┌─ tests/move_check/expansion/unbound_named_address.move:16:18

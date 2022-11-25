@@ -1,3 +1,21 @@
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/type_variable_join_threaded_unpack_assign_invalid.move:10:29
+   │
+10 │     public fun get<V: drop>(self: &T<V>): V {
+   │                             ^^^^ Unused parameter 'self'. Consider removing or prefixing with an underscore: '_self'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/type_variable_join_threaded_unpack_assign_invalid.move:14:23
+   │
+14 │     public fun put<V>(self: &mut T<V>, item: V) {
+   │                       ^^^^ Unused parameter 'self'. Consider removing or prefixing with an underscore: '_self'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/type_variable_join_threaded_unpack_assign_invalid.move:14:40
+   │
+14 │     public fun put<V>(self: &mut T<V>, item: V) {
+   │                                        ^^^^ Unused parameter 'item'. Consider removing or prefixing with an underscore: '_item'
+
 error[E04007]: incompatible types
    ┌─ tests/move_check/typing/type_variable_join_threaded_unpack_assign_invalid.move:36:9
    │

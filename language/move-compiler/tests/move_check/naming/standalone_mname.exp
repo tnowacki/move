@@ -1,3 +1,9 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/naming/standalone_mname.move:3:13
+  │
+3 │         let m = M;
+  │             ^ Unused local variable 'm'. Consider removing or prefixing with an underscore: '_m'
+
 error[E03005]: unbound unscoped name
   ┌─ tests/move_check/naming/standalone_mname.move:3:17
   │

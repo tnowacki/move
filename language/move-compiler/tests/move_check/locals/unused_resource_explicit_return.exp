@@ -1,8 +1,14 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/locals/unused_resource_explicit_return.move:5:13
+  │
+5 │         let r = R{};
+  │             ^ Unused local variable 'r'. Consider removing or prefixing with an underscore: '_r'
+
 warning[W09003]: unused assignment
   ┌─ tests/move_check/locals/unused_resource_explicit_return.move:5:13
   │
 5 │         let r = R{};
-  │             ^ Unused assignment or binding for local 'r'. Consider removing, replacing with '_', or prefixing with '_' (e.g., '_r')
+  │             ^ Unused assignment for variable 'r'. Consider removing, replacing with '_', or prefixing with '_' (e.g., '_r')
 
 error[E06001]: unused value without 'drop'
   ┌─ tests/move_check/locals/unused_resource_explicit_return.move:6:9
@@ -56,11 +62,17 @@ error[E06001]: unused value without 'drop'
 23 │         while (cond) { return () };
    │                        ^^^^^^^^^ Invalid return
 
+warning[W09002]: unused variable
+   ┌─ tests/move_check/locals/unused_resource_explicit_return.move:28:13
+   │
+28 │         let r = R{};
+   │             ^ Unused local variable 'r'. Consider removing or prefixing with an underscore: '_r'
+
 warning[W09003]: unused assignment
    ┌─ tests/move_check/locals/unused_resource_explicit_return.move:28:13
    │
 28 │         let r = R{};
-   │             ^ Unused assignment or binding for local 'r'. Consider removing, replacing with '_', or prefixing with '_' (e.g., '_r')
+   │             ^ Unused assignment for variable 'r'. Consider removing, replacing with '_', or prefixing with '_' (e.g., '_r')
 
 error[E06001]: unused value without 'drop'
    ┌─ tests/move_check/locals/unused_resource_explicit_return.move:29:16
@@ -75,11 +87,17 @@ error[E06001]: unused value without 'drop'
 29 │         loop { return () }
    │                ^^^^^^^^^ Invalid return
 
+warning[W09002]: unused variable
+   ┌─ tests/move_check/locals/unused_resource_explicit_return.move:33:13
+   │
+33 │         let x = &R{};
+   │             ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
+
 warning[W09003]: unused assignment
    ┌─ tests/move_check/locals/unused_resource_explicit_return.move:33:13
    │
 33 │         let x = &R{};
-   │             ^ Unused assignment or binding for local 'x'. Consider removing, replacing with '_', or prefixing with '_' (e.g., '_x')
+   │             ^ Unused assignment for variable 'x'. Consider removing, replacing with '_', or prefixing with '_' (e.g., '_x')
 
 error[E06001]: unused value without 'drop'
    ┌─ tests/move_check/locals/unused_resource_explicit_return.move:34:9

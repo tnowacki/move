@@ -18,7 +18,7 @@ pub(crate) mod translate;
 use crate::{
     expansion::ast::{AbilitySet, ModuleIdent},
     hlir::ast::*,
-    parser::ast::{StructName, Var},
+    parser::ast::StructName,
     shared::{unique_map::UniqueMap, CompilationEnv},
 };
 use cfg::*;

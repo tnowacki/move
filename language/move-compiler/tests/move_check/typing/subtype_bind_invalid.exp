@@ -1,3 +1,9 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/subtype_bind_invalid.move:5:13
+  │
+5 │         let x: &mut u64 = &0;
+  │             ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
+
 error[E04006]: invalid subtype
   ┌─ tests/move_check/typing/subtype_bind_invalid.move:5:16
   │
@@ -6,6 +12,18 @@ error[E04006]: invalid subtype
   │                │           
   │                Invalid type annotation
   │                Expected: '&mut u64'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/subtype_bind_invalid.move:9:14
+  │
+9 │         let (x, y): (&mut u64, &mut u64) = (&0, &0);
+  │              ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/subtype_bind_invalid.move:9:17
+  │
+9 │         let (x, y): (&mut u64, &mut u64) = (&0, &0);
+  │                 ^ Unused local variable 'y'. Consider removing or prefixing with an underscore: '_y'
 
 error[E04006]: invalid subtype
   ┌─ tests/move_check/typing/subtype_bind_invalid.move:9:21
@@ -16,6 +34,18 @@ error[E04006]: invalid subtype
   │                     │Expected: '&mut u64'
   │                     Invalid type annotation
 
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/subtype_bind_invalid.move:10:14
+   │
+10 │         let (x, y): (&mut u64, &u64) = (&0, &0);
+   │              ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/subtype_bind_invalid.move:10:17
+   │
+10 │         let (x, y): (&mut u64, &u64) = (&0, &0);
+   │                 ^ Unused local variable 'y'. Consider removing or prefixing with an underscore: '_y'
+
 error[E04006]: invalid subtype
    ┌─ tests/move_check/typing/subtype_bind_invalid.move:10:21
    │
@@ -24,6 +54,18 @@ error[E04006]: invalid subtype
    │                     ││                   
    │                     │Expected: '&mut u64'
    │                     Invalid type annotation
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/subtype_bind_invalid.move:11:14
+   │
+11 │         let (x, y): (&u64, &mut u64) = (&0, &0);
+   │              ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/subtype_bind_invalid.move:11:17
+   │
+11 │         let (x, y): (&u64, &mut u64) = (&0, &0);
+   │                 ^ Unused local variable 'y'. Consider removing or prefixing with an underscore: '_y'
 
 error[E04006]: invalid subtype
    ┌─ tests/move_check/typing/subtype_bind_invalid.move:11:21

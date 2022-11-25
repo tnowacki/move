@@ -1,3 +1,9 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/declare_wrong_arity.move:5:13
+  │
+5 │         let x: ();
+  │             ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
+
 error[E04005]: expected a single type
   ┌─ tests/move_check/typing/declare_wrong_arity.move:5:13
   │
@@ -24,6 +30,24 @@ error[E04007]: incompatible types
   │             Invalid value for binding
   │             Expected expression list of length 3: '(_, _, _)'
 
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/declare_wrong_arity.move:7:14
+  │
+7 │         let (x, b, R{f}): (u64, bool, R, R);
+  │              ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/declare_wrong_arity.move:7:17
+  │
+7 │         let (x, b, R{f}): (u64, bool, R, R);
+  │                 ^ Unused local variable 'b'. Consider removing or prefixing with an underscore: '_b'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/declare_wrong_arity.move:7:22
+  │
+7 │         let (x, b, R{f}): (u64, bool, R, R);
+  │                      ^ Unused local variable 'f'. Consider removing or prefixing with an underscore: '_f'
+
 error[E04007]: incompatible types
   ┌─ tests/move_check/typing/declare_wrong_arity.move:8:13
   │
@@ -32,4 +56,22 @@ error[E04007]: incompatible types
   │             │              
   │             Invalid value for binding
   │             Expected expression list of length 3: '(_, _, _)'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/declare_wrong_arity.move:8:14
+  │
+8 │         let (x, b, R{f}): (u64, bool);
+  │              ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/declare_wrong_arity.move:8:17
+  │
+8 │         let (x, b, R{f}): (u64, bool);
+  │                 ^ Unused local variable 'b'. Consider removing or prefixing with an underscore: '_b'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/declare_wrong_arity.move:8:22
+  │
+8 │         let (x, b, R{f}): (u64, bool);
+  │                      ^ Unused local variable 'f'. Consider removing or prefixing with an underscore: '_f'
 

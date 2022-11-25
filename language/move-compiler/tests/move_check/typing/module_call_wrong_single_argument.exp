@@ -1,3 +1,27 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/module_call_wrong_single_argument.move:6:20
+  │
+6 │     public fun foo(s: S) {
+  │                    ^ Unused parameter 's'. Consider removing or prefixing with an underscore: '_s'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/module_call_wrong_single_argument.move:9:20
+  │
+9 │     public fun bar(x: u64) {
+  │                    ^ Unused parameter 'x'. Consider removing or prefixing with an underscore: '_x'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/module_call_wrong_single_argument.move:17:20
+   │
+17 │     public fun foo(s: S) {
+   │                    ^ Unused parameter 's'. Consider removing or prefixing with an underscore: '_s'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/module_call_wrong_single_argument.move:20:20
+   │
+20 │     public fun bar(x: u64) {
+   │                    ^ Unused parameter 'x'. Consider removing or prefixing with an underscore: '_x'
+
 error[E04007]: incompatible types
    ┌─ tests/move_check/typing/module_call_wrong_single_argument.move:24:9
    │
