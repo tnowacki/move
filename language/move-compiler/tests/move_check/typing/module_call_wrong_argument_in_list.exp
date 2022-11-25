@@ -1,3 +1,39 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/module_call_wrong_argument_in_list.move:8:20
+  │
+8 │     public fun foo(a: address, u: u64, s: S) {
+  │                    ^ Unused parameter 'a'. Consider removing or prefixing with an underscore: '_a'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/module_call_wrong_argument_in_list.move:8:32
+  │
+8 │     public fun foo(a: address, u: u64, s: S) {
+  │                                ^ Unused parameter 'u'. Consider removing or prefixing with an underscore: '_u'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/module_call_wrong_argument_in_list.move:8:40
+  │
+8 │     public fun foo(a: address, u: u64, s: S) {
+  │                                        ^ Unused parameter 's'. Consider removing or prefixing with an underscore: '_s'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/module_call_wrong_argument_in_list.move:16:20
+   │
+16 │     public fun foo(a: address, u: u64, s: S) {
+   │                    ^ Unused parameter 'a'. Consider removing or prefixing with an underscore: '_a'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/module_call_wrong_argument_in_list.move:16:32
+   │
+16 │     public fun foo(a: address, u: u64, s: S) {
+   │                                ^ Unused parameter 'u'. Consider removing or prefixing with an underscore: '_u'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/module_call_wrong_argument_in_list.move:16:40
+   │
+16 │     public fun foo(a: address, u: u64, s: S) {
+   │                                        ^ Unused parameter 's'. Consider removing or prefixing with an underscore: '_s'
+
 error[E04007]: incompatible types
    ┌─ tests/move_check/typing/module_call_wrong_argument_in_list.move:20:9
    │

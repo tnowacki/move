@@ -130,6 +130,12 @@ error[E04004]: expected a single non-reference type
    │         │ Expected a single non-reference type, but found: '(u64, u64)'
    │         Invalid type argument
 
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/instantiate_signatures.move:32:13
+   │
+32 │         let f1: S<R> = abort 0;
+   │             ^^ Unused local variable 'f1'. Consider removing or prefixing with an underscore: '_f1'
+
 error[E05001]: ability constraint not satisfied
    ┌─ tests/move_check/typing/instantiate_signatures.move:32:17
    │
@@ -144,6 +150,12 @@ error[E05001]: ability constraint not satisfied
    │                 │ The type '0x42::M::R' does not have the ability 'drop'
    │                 'drop' constraint not satisifed
 
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/instantiate_signatures.move:33:13
+   │
+33 │         let f2: S<&u64> = abort 0;
+   │             ^^ Unused local variable 'f2'. Consider removing or prefixing with an underscore: '_f2'
+
 error[E04004]: expected a single non-reference type
    ┌─ tests/move_check/typing/instantiate_signatures.move:33:17
    │
@@ -153,6 +165,12 @@ error[E04004]: expected a single non-reference type
    │                 │ Expected a single non-reference type, but found: '&u64'
    │                 Invalid type argument
 
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/instantiate_signatures.move:34:13
+   │
+34 │         let f3: &(&u64) = abort 0;
+   │             ^^ Unused local variable 'f3'. Consider removing or prefixing with an underscore: '_f3'
+
 error[E04004]: expected a single non-reference type
    ┌─ tests/move_check/typing/instantiate_signatures.move:34:17
    │
@@ -161,6 +179,12 @@ error[E04004]: expected a single non-reference type
    │                 ││
    │                 │Expected a single non-reference type, but found: '&u64'
    │                 Invalid reference type
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/instantiate_signatures.move:35:13
+   │
+35 │         let f4: S<(u64, u64)> = abort 0;
+   │             ^^ Unused local variable 'f4'. Consider removing or prefixing with an underscore: '_f4'
 
 error[E04004]: expected a single non-reference type
    ┌─ tests/move_check/typing/instantiate_signatures.move:35:17

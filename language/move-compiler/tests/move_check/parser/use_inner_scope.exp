@@ -22,6 +22,12 @@ error[E03002]: unbound module
 8 │         use 0x2::Salsa::{Self, foo as bar, foo};
   │             ^^^^^^^^^^ Invalid 'use'. Unbound module: '0x2::Salsa'
 
+warning[W09002]: unused variable
+  ┌─ tests/move_check/parser/use_inner_scope.move:9:13
+  │
+9 │         let x = {
+  │             ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
+
 error[E03002]: unbound module
    ┌─ tests/move_check/parser/use_inner_scope.move:10:17
    │

@@ -4,6 +4,12 @@ error[E03004]: unbound type
 2 │     struct Mine { f: A }
   │                      ^ Unbound type 'A' in current scope
 
+warning[W09002]: unused variable
+  ┌─ tests/move_check/naming/unresolved_type_no_args.move:3:13
+  │
+3 │     fun foo(x: S): G {
+  │             ^ Unused parameter 'x'. Consider removing or prefixing with an underscore: '_x'
+
 error[E03004]: unbound type
   ┌─ tests/move_check/naming/unresolved_type_no_args.move:3:16
   │

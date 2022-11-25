@@ -1,3 +1,21 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/cast_invalid.move:5:12
+  │
+5 │     fun t0(x8: u8, x64: u64, x128: u128) {
+  │            ^^ Unused parameter 'x8'. Consider removing or prefixing with an underscore: '_x8'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/cast_invalid.move:5:20
+  │
+5 │     fun t0(x8: u8, x64: u64, x128: u128) {
+  │                    ^^^ Unused parameter 'x64'. Consider removing or prefixing with an underscore: '_x64'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/cast_invalid.move:5:30
+  │
+5 │     fun t0(x8: u8, x64: u64, x128: u128) {
+  │                              ^^^^ Unused parameter 'x128'. Consider removing or prefixing with an underscore: '_x128'
+
 error[E04003]: built-in operation not supported
   ┌─ tests/move_check/typing/cast_invalid.move:6:10
   │

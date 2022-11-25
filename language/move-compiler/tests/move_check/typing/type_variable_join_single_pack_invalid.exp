@@ -1,3 +1,9 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/type_variable_join_single_pack_invalid.move:5:13
+  │
+5 │         let b = Box { f1: false, f2: 1 };
+  │             ^ Unused local variable 'b'. Consider removing or prefixing with an underscore: '_b'
+
 error[E04007]: incompatible types
   ┌─ tests/move_check/typing/type_variable_join_single_pack_invalid.move:5:38
   │
@@ -7,6 +13,12 @@ error[E04007]: incompatible types
   │                           │          Invalid argument for field 'f2' for '0x8675309::M::Box'
   │                           │          Given: integer
   │                           Expected: 'bool'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/type_variable_join_single_pack_invalid.move:6:13
+  │
+6 │         let b2 = Box { f1: Box { f1: 0, f2: 0 }, f2:  Box { f1: false, f2: false } };
+  │             ^^ Unused local variable 'b2'. Consider removing or prefixing with an underscore: '_b2'
 
 error[E04007]: incompatible types
   ┌─ tests/move_check/typing/type_variable_join_single_pack_invalid.move:6:55

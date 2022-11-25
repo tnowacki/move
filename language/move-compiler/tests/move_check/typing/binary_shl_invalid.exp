@@ -1,3 +1,9 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/binary_shl_invalid.move:7:12
+  │
+7 │     fun t0(x: u64, r: R, s: S) {
+  │            ^ Unused parameter 'x'. Consider removing or prefixing with an underscore: '_x'
+
 error[E04003]: built-in operation not supported
   ┌─ tests/move_check/typing/binary_shl_invalid.move:8:9
   │

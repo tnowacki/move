@@ -1,3 +1,9 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/naming/generics_shadowing_invalid.move:6:23
+  │
+6 │     fun foo<S>(s1: S, s2: S): S {
+  │                       ^^ Unused parameter 's2'. Consider removing or prefixing with an underscore: '_s2'
+
 error[E04007]: incompatible types
   ┌─ tests/move_check/naming/generics_shadowing_invalid.move:7:14
   │
@@ -8,6 +14,12 @@ error[E04007]: incompatible types
   │              │
   │              Invalid type annotation
   │              Expected: '0x2::M::S'
+
+warning[W09002]: unused variable
+  ┌─ tests/move_check/naming/generics_shadowing_invalid.move:8:13
+  │
+8 │         let s: S = S {}; // TODO error? should this try to construct the generic ?
+  │             ^ Unused local variable 's'. Consider removing or prefixing with an underscore: '_s'
 
 error[E03006]: unexpected name in this position
   ┌─ tests/move_check/naming/generics_shadowing_invalid.move:8:20
@@ -38,4 +50,10 @@ error[E03006]: unexpected name in this position
    ·
 10 │         S {}
    │         ^ Invalid construction. Expected a struct name
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/naming/generics_shadowing_invalid.move:13:13
+   │
+13 │     fun bar(s: S) {}
+   │             ^ Unused parameter 's'. Consider removing or prefixing with an underscore: '_s'
 

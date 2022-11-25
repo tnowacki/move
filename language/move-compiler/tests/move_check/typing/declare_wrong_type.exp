@@ -7,6 +7,12 @@ error[E04007]: incompatible types
   │             Invalid deconstruction binding
   │             Given: '0x8675309::M::S'
 
+warning[W09002]: unused variable
+  ┌─ tests/move_check/typing/declare_wrong_type.move:6:17
+  │
+6 │         let S { g } : R;
+  │                 ^ Unused local variable 'g'. Consider removing or prefixing with an underscore: '_g'
+
 error[E04007]: incompatible types
   ┌─ tests/move_check/typing/declare_wrong_type.move:7:14
   │

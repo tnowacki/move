@@ -1,3 +1,9 @@
+warning[W09002]: unused variable
+  ┌─ tests/move_check/translated_ir_tests/move/signer/move_to_missing_signer.move:3:12
+  │
+3 │     fun t0(s: &signer) {
+  │            ^ Unused parameter 's'. Consider removing or prefixing with an underscore: '_s'
+
 error[E04016]: too few arguments
   ┌─ tests/move_check/translated_ir_tests/move/signer/move_to_missing_signer.move:4:9
   │
@@ -16,6 +22,12 @@ error[E04007]: incompatible types
   │         │          Given: '0x8675309::M::R'
   │         Invalid call of 'move_to'. Invalid argument for parameter '0'
   │         Expected: '&signer'
+
+warning[W09002]: unused variable
+   ┌─ tests/move_check/translated_ir_tests/move/signer/move_to_missing_signer.move:13:15
+   │
+13 │     fun t0<T>(s: &signer) {
+   │               ^ Unused parameter 's'. Consider removing or prefixing with an underscore: '_s'
 
 error[E04016]: too few arguments
    ┌─ tests/move_check/translated_ir_tests/move/signer/move_to_missing_signer.move:14:14

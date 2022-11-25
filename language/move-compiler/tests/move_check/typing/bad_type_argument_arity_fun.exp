@@ -1,3 +1,9 @@
+warning[W09002]: unused variable
+   ┌─ tests/move_check/typing/bad_type_argument_arity_fun.move:11:13
+   │
+11 │         let x = foo<>(0);
+   │             ^ Unused local variable 'x'. Consider removing or prefixing with an underscore: '_x'
+
 error[E03008]: too few type arguments
    ┌─ tests/move_check/typing/bad_type_argument_arity_fun.move:11:17
    │
