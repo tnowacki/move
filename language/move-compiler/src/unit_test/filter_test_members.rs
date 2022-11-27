@@ -201,7 +201,7 @@ fn create_test_poison(mloc: Loc) -> P::ModuleMember {
         entry: None,
         acquires: vec![],
         signature,
-        is_macro: false,
+        macro_: None,
         name: P::FunctionName(sp(mloc, "unit_test_poison".into())),
         body: sp(
             mloc,

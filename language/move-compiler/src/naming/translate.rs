@@ -536,7 +536,7 @@ fn function(
     let E::Function {
         attributes,
         loc: _,
-        is_macro,
+        macro_,
         visibility,
         entry,
         signature,
@@ -554,7 +554,7 @@ fn function(
     let body = function_body(context, body);
     let mut f = N::Function {
         attributes,
-        is_macro,
+        macro_,
         visibility,
         entry,
         signature,
@@ -844,7 +844,7 @@ fn type_(context: &mut Context, sp!(loc, ety_): E::Type) -> N::Type {
             Some(RT::BuiltinType) => {
                 let bn_ = N::BuiltinTypeName_::resolve(&n.value).unwrap();
                 let name_f = || format!("{}", &bn_);
-                let arity = bn_.tparam_constraints(loc, tys.len()).len();
+                let arity = bn_.tparam_constraints(loc).len();
                 let tys = types(context, tys);
                 let tys = check_type_argument_arity(context, loc, name_f, tys, arity);
                 NT::builtin_(sp(loc, bn_), tys)
@@ -861,11 +861,6 @@ fn type_(context: &mut Context, sp!(loc, ety_): E::Type) -> N::Type {
                 }
             }
         },
-        ET::Fun(args, result) => {
-            let mut args = types(context, args);
-            args.push(type_(context, *result));
-            NT::builtin_(sp(loc, N::BuiltinTypeName_::Fun), args)
-        }
         ET::Apply(sp!(nloc, EN::ModuleAccess(m, n)), tys) => {
             match context.resolve_module_type(nloc, &m, &n) {
                 None => {
@@ -881,6 +876,7 @@ fn type_(context: &mut Context, sp!(loc, ety_): E::Type) -> N::Type {
                 }
             }
         }
+        ET::Fun(args, result) => NT::Fun(types(context, args), Box::new(type_(context, *result))),
     };
     sp(loc, ty_)
 }
@@ -1017,13 +1013,16 @@ fn exp_(context: &mut Context, e: E::Exp) -> N::Exp {
         EE::Loop(el) => NE::Loop(exp(context, *el)),
         EE::Block(seq) => NE::Block(sequence(context, seq)),
         EE::Lambda(args, body) => {
+            context.new_local_scope();
             let bind_opt = bind_list(context, args);
+            let body = Box::new(exp_(context, *body));
+            context.close_local_scope();
             match bind_opt {
                 None => {
-                    assert!(context.env.has_diags());
+                    assert!(context.env.has_errors());
                     N::Exp_::UnresolvedError
                 }
-                Some(bind) => NE::Lambda(bind, Box::new(exp_(context, *body))),
+                Some(bind) => NE::Lambda(bind, body),
             }
         }
         EE::Assign(a, e) => {
@@ -1111,10 +1110,12 @@ fn exp_(context: &mut Context, e: E::Exp) -> N::Exp {
             if n.value.as_str() == N::BuiltinFunction_::ASSERT_MACRO =>
         {
             use N::BuiltinFunction_ as BF;
-            if tys_opt.is_some() {
+            let ty_args = tys_opt.map(|tys| types(context, tys));
+            if ty_args.is_some() {
                 context.env.add_diag(diag!(
-                    TypeSafety::TooManyArguments,
-                    (eloc, "expected zero type arguments")
+                    NameResolution::TooManyTypeArguments,
+                    (mloc, "Invalid call to builtin macro 'assert!'"),
+                    (eloc, "Expected zero type arguments")
                 ));
             }
             let nes = call_args(context, rhs);
@@ -1135,7 +1136,31 @@ fn exp_(context: &mut Context, e: E::Exp) -> N::Exp {
                     }
                 }
 
-                EA::Name(n) => NE::VarCall(Var(n), nes),
+                EA::Name(n) if P::Var::is_macro_identifier_name(&n) => {
+                    match context.resolve_local(n.loc, "lambda call", n) {
+                        None => {
+                            assert!(context.env.has_errors());
+                            NE::UnresolvedError
+                        }
+                        Some(v) => {
+                            if ty_args.is_some() {
+                                context.env.add_diag(diag!(
+                                    NameResolution::TooManyTypeArguments,
+                                    (mloc, "Invalid lambda call"),
+                                    (eloc, "Expected zero type arguments")
+                                ));
+                            }
+                            NE::VarCall(v, nes)
+                        }
+                    }
+                }
+                EA::Name(n) => {
+                    context.env.add_diag(diag!(
+                        NameResolution::UnboundUnscopedName,
+                        (n.loc, format!("Unbound function '{}' in current scope", n)),
+                    ));
+                    NE::UnresolvedError
+                }
                 EA::ModuleAccess(m, n) => match context.resolve_module_function(mloc, &m, &n) {
                     None => {
                         assert!(context.env.has_errors());
@@ -1554,13 +1579,17 @@ fn remove_unused_bindings_exp(
         }
         N::Exp_::Builtin(_, sp!(_, es))
         | N::Exp_::Vector(_, _, sp!(_, es))
-        | N::Exp_::ModuleCall(_, _, _, sp!(_, es))
+        | N::Exp_::ModuleCall(_, _, _, _, sp!(_, es))
+        | N::Exp_::VarCall(_, sp!(_, es))
         | N::Exp_::ExpList(es) => {
             for e in es {
                 remove_unused_bindings_exp(context, used, e)
             }
         }
-
+        N::Exp_::Lambda(lvalues, e) => {
+            remove_unused_bindings_lvalues(context, used, lvalues);
+            remove_unused_bindings_exp(context, used, e)
+        }
         N::Exp_::DerefBorrow(ed) | N::Exp_::Borrow(_, ed) => {
             remove_unused_bindings_exp_dotted(context, used, ed)
         }

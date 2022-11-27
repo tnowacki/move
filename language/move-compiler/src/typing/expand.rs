@@ -27,18 +27,8 @@ pub fn function_body_(context: &mut Context, b_: &mut T::FunctionBody_) {
 pub fn function_signature(context: &mut Context, sig: &mut FunctionSignature) {
     for (_, st) in &mut sig.parameters {
         type_(context, st);
-        core::check_non_fun(context, st)
     }
     type_(context, &mut sig.return_type);
-    core::check_non_fun(context, &sig.return_type)
-}
-
-pub fn macro_signature(context: &mut Context, sig: &mut FunctionSignature) {
-    for (_, st) in &mut sig.parameters {
-        type_(context, st);
-    }
-    type_(context, &mut sig.return_type);
-    core::check_non_fun(context, &sig.return_type)
 }
 
 //**************************************************************************************************
@@ -90,6 +80,17 @@ pub fn type_(context: &mut Context, ty: &mut Type) {
                 }
                 _ => panic!("ICE impossible. tapply switched to nontapply"),
             }
+        }
+        Fun(args, result) => {
+            if !context.in_macro_function {
+                let msg =
+                    "Unexpected lambda type. Lambdas can only be used as macro function parameters";
+                context
+                    .env
+                    .add_diag(diag!(TypeSafety::UnexpectedFunctionType, (ty.loc, msg)));
+            }
+            types(context, args);
+            type_(context, result);
         }
     }
 }
@@ -240,7 +241,6 @@ pub fn exp(context: &mut Context, e: &mut T::Exp) {
         | E::UnresolvedError => (),
 
         E::ModuleCall(call) => module_call(context, call),
-        E::VarCall(_, args) => exp(context, args),
         E::Builtin(b, args) => {
             builtin_function(context, b);
             exp(context, args);
@@ -262,6 +262,10 @@ pub fn exp(context: &mut Context, e: &mut T::Exp) {
         E::Loop { body: eloop, .. } => exp(context, eloop),
         E::Block(seq) => sequence(context, seq),
         E::Lambda(args, body) => {
+            let msg = "Lambdas can only be used directly as to macro functions";
+            context
+                .env
+                .add_diag(diag!(TypeSafety::UnexpectedLambda, (e.exp.loc, msg)));
             lvalues(context, args);
             exp(context, body);
         }
@@ -330,7 +334,6 @@ fn lvalue(context: &mut Context, b: &mut T::LValue) {
         }
         L::Var { ty, .. } => {
             type_(context, ty);
-            core::check_non_fun(context, ty.as_ref())
         }
         L::BorrowUnpack(_, _, _, bts, fields) | L::Unpack(_, _, bts, fields) => {
             types(context, bts);

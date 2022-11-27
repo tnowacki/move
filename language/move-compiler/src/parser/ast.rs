@@ -268,7 +268,7 @@ pub struct Function {
     pub signature: FunctionSignature,
     pub acquires: Vec<NameAccessChain>,
     pub name: FunctionName,
-    pub is_macro: bool,
+    pub macro_: Option<Loc>,
     pub body: FunctionBody,
 }
 
@@ -743,12 +743,22 @@ impl ModuleName {
 }
 
 impl Var {
+    pub const MACRO_IDENT_START: char = '$';
+
     pub fn is_underscore(&self) -> bool {
         self.0.value.as_str() == "_"
     }
 
     pub fn starts_with_underscore(&self) -> bool {
         self.0.value.starts_with('_')
+    }
+
+    pub fn is_macro_identifier(&self) -> bool {
+        Self::is_macro_identifier_name(&self.0)
+    }
+
+    pub fn is_macro_identifier_name(n: &Name) -> bool {
+        n.value.starts_with(Self::MACRO_IDENT_START)
     }
 }
 
@@ -1465,7 +1475,7 @@ impl AstDebug for Function {
             entry,
             signature,
             acquires,
-            is_macro,
+            macro_,
             name,
             body,
         } = self;
@@ -1477,11 +1487,10 @@ impl AstDebug for Function {
         if let FunctionBody_::Native = &body.value {
             w.write("native ");
         }
-        if *is_macro {
-            w.write(&format!("macro {}", name));
-        } else {
-            w.write(&format!("fun {}", name));
+        if macro_.is_some() {
+            w.write("macro ")
         }
+        w.write(&format!("fun {}", name));
         signature.ast_debug(w);
         if !acquires.is_empty() {
             w.write(" acquires ");

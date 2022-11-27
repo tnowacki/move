@@ -8,7 +8,7 @@ use crate::{
     expansion::ast::{AbilitySet, ModuleIdent, Visibility},
     naming::ast::{
         self as N, BuiltinTypeName_, FunctionSignature, StructDefinition, StructTypeParameter,
-        TParam, TParamID, TVar, Type, TypeName, TypeName_, Type_, Var, Variance,
+        TParam, TParamID, TVar, Type, TypeName, TypeName_, Type_, Var,
     },
     parser::ast::{Ability_, ConstantName, Field, FunctionName, StructName},
     shared::{unique_map::UniqueMap, *},
@@ -42,7 +42,7 @@ pub struct FunctionInfo {
     pub visibility: Visibility,
     pub signature: FunctionSignature,
     pub acquires: BTreeMap<StructName, Loc>,
-    pub is_macro: bool,
+    pub macro_: Option<Loc>,
 }
 
 pub struct ConstantInfo {
@@ -54,6 +54,7 @@ pub struct ModuleInfo {
     pub friends: UniqueMap<ModuleIdent, Loc>,
     pub structs: UniqueMap<StructName, StructDefinition>,
     pub functions: UniqueMap<FunctionName, FunctionInfo>,
+    pub macro_functions: UniqueMap<FunctionName, N::Function>,
     pub constants: UniqueMap<ConstantName, ConstantInfo>,
 }
 
@@ -71,6 +72,8 @@ pub struct Context<'env> {
 
     pub current_module: Option<ModuleIdent>,
     pub current_function: Option<FunctionName>,
+    pub in_macro_function: bool,
+    max_variable_color: u16,
     pub current_script_constants: Option<UniqueMap<ConstantName, ConstantInfo>>,
     pub return_type: Option<Type>,
     locals: BTreeMap<Var, Type>,
@@ -104,8 +107,19 @@ impl<'env> Context<'env> {
                 visibility: fdef.visibility.clone(),
                 signature: fdef.signature.clone(),
                 acquires: fdef.acquires.clone(),
-                is_macro: fdef.is_macro,
+                macro_: fdef.macro_,
             });
+            let macro_functions =
+                UniqueMap::maybe_from_iter(mdef.functions.key_cloned_iter().filter_map(
+                    |(fname, fdef)| {
+                        if fdef.macro_.is_none() {
+                            None
+                        } else {
+                            Some((fname, fdef.clone()))
+                        }
+                    },
+                ))
+                .unwrap();
             let constants = mdef.constants.ref_map(|cname, cdef| ConstantInfo {
                 defined_loc: cname.loc(),
                 signature: cdef.signature.clone(),
@@ -114,6 +128,7 @@ impl<'env> Context<'env> {
                 friends: mdef.friends.ref_map(|_, friend| friend.loc),
                 structs,
                 functions,
+                macro_functions,
                 constants,
             };
             (mident, minfo)
@@ -123,6 +138,8 @@ impl<'env> Context<'env> {
             subst: Subst::empty(),
             current_module: None,
             current_function: None,
+            in_macro_function: false,
+            max_variable_color: 0,
             current_script_constants: None,
             return_type: None,
             constraints: vec![],
@@ -143,6 +160,8 @@ impl<'env> Context<'env> {
         self.subst = Subst::empty();
         self.constraints = Constraints::new();
         self.current_function = None;
+        self.in_macro_function = false;
+        self.max_variable_color = 0;
     }
 
     pub fn bind_script_constants(&mut self, constants: &UniqueMap<ConstantName, N::Constant>) {
@@ -219,6 +238,12 @@ impl<'env> Context<'env> {
 
     pub fn get_local(&mut self, var: &Var) -> Type {
         // should not fail, already checked in naming
+        if self.locals.get(var).is_none() {
+            let msg = format!("unbound local in typing {:?} after name resolution", var);
+            self.env
+                .add_diag(diag!(Bug::InvariantViolation, (var.loc, msg)));
+            return self.error_type(var.loc);
+        }
         self.locals.get(var).unwrap().clone()
     }
 
@@ -243,7 +268,7 @@ impl<'env> Context<'env> {
         }
     }
 
-    fn module_info(&self, m: &ModuleIdent) -> &ModuleInfo {
+    pub(crate) fn module_info(&self, m: &ModuleIdent) -> &ModuleInfo {
         self.modules
             .get(m)
             .expect("ICE should have failed in naming")
@@ -322,6 +347,11 @@ impl<'env> Context<'env> {
             LoopInfo_::BreakTypeUnknown => None,
             LoopInfo_::BreakType(t) => Some(*t),
         }
+    }
+
+    pub fn next_variable_color(&mut self) -> u16 {
+        self.max_variable_color += 1;
+        self.max_variable_color
     }
 }
 
@@ -434,13 +464,11 @@ fn error_format_impl_(b_: &Type_, subst: &Subst, nested: bool) -> String {
             let inner = format_comma(tys.iter().map(|s| error_format_nested(s, subst)));
             format!("({})", inner)
         }
-        Apply(_, sp!(_, TypeName_::Builtin(sp!(_, BuiltinTypeName_::Fun))), tys) => {
-            assert!(!tys.is_empty(), "ICE invalid function type");
-            let k = tys.len() - 1;
+        Fun(args, result) => {
             format!(
                 "|{}|{}",
-                format_comma((&tys[0..k]).iter().map(|t| error_format_nested(t, subst))),
-                error_format_nested(&tys[k], subst)
+                format_comma(args.iter().map(|t| error_format_nested(t, subst))),
+                error_format_nested(result, subst)
             )
         }
         Apply(_, n, tys) => {
@@ -508,6 +536,7 @@ pub fn infer_abilities(context: &Context, subst: &Subst, ty: Type) -> AbilitySet
             }))
             .unwrap()
         }
+        T::Fun(_, _) => AbilitySet::functions(),
     }
 }
 
@@ -538,6 +567,7 @@ fn debug_abilities_info(context: &Context, ty: &Type) -> (Option<Loc>, AbilitySe
             context.struct_declared_abilities(m, n).clone(),
             ty_args.clone(),
         ),
+        T::Fun(_, _) => (None, AbilitySet::functions(), vec![]),
     }
 }
 
@@ -726,7 +756,7 @@ pub fn make_function_type(
     Vec<(Var, Type)>,
     BTreeMap<StructName, Loc>,
     Type,
-    bool,
+    Option<Loc>,
 ) {
     let in_current_module = match &context.current_module {
         Some(current) => m == current,
@@ -758,7 +788,7 @@ pub fn make_function_type(
     };
 
     let finfo = context.function_info(m, f);
-    let is_macro = finfo.is_macro;
+    let macro_ = finfo.macro_;
     let tparam_subst = &make_tparam_subst(&finfo.signature.type_parameters, ty_args.clone());
     let params = finfo
         .signature
@@ -802,7 +832,7 @@ pub fn make_function_type(
         }
         Visibility::Public(_) => (),
     };
-    (defined_loc, ty_args, params, acquires, return_ty, is_macro)
+    (defined_loc, ty_args, params, acquires, return_ty, macro_)
 }
 
 //**************************************************************************************************
@@ -1018,7 +1048,7 @@ fn solve_base_type_constraint(context: &mut Context, loc: Loc, msg: String, ty: 
                 (tyloc, tmsg)
             ))
         }
-        UnresolvedError | Anything | Param(_) | Apply(_, _, _) => (),
+        UnresolvedError | Anything | Param(_) | Apply(_, _, _) | Fun(_, _) => (),
     }
 }
 
@@ -1030,7 +1060,7 @@ fn solve_single_type_constraint(context: &mut Context, loc: Loc, msg: String, ty
         Var(_) => unreachable!(),
         Unit | Apply(_, sp!(_, Multiple(_)), _) => {
             let tmsg = format!(
-                "Expected a single type, but found expression list type: {}",
+                "Expected a single type, but found: {}",
                 error_format(ty, &context.subst)
             );
             context.env.add_diag(diag!(
@@ -1039,7 +1069,7 @@ fn solve_single_type_constraint(context: &mut Context, loc: Loc, msg: String, ty
                 (tyloc, tmsg)
             ))
         }
-        UnresolvedError | Anything | Ref(_, _) | Param(_) | Apply(_, _, _) => (),
+        UnresolvedError | Anything | Ref(_, _) | Param(_) | Apply(_, _, _) | Fun(_, _) => (),
     }
 }
 
@@ -1113,6 +1143,11 @@ pub fn subst_tparams(subst: &TParamSubst, sp!(loc, t_): Type) -> Type {
                 .collect();
             sp(loc, Apply(k, n, ftys))
         }
+        Fun(args, result) => {
+            let ftys = args.into_iter().map(|t| subst_tparams(subst, t)).collect();
+            let fres = Box::new(subst_tparams(subst, *result));
+            sp(loc, Fun(ftys, fres))
+        }
     }
 }
 
@@ -1124,6 +1159,11 @@ pub fn ready_tvars(subst: &Subst, sp!(loc, t_): Type) -> Type {
         Apply(k, n, tys) => {
             let tys = tys.into_iter().map(|t| ready_tvars(subst, t)).collect();
             sp(loc, Apply(k, n, tys))
+        }
+        Fun(args, result) => {
+            let args = args.into_iter().map(|t| ready_tvars(subst, t)).collect();
+            let result = Box::new(ready_tvars(subst, *result));
+            sp(loc, Fun(args, result))
         }
         Var(i) => {
             let last_var = forward_tvar(subst, i);
@@ -1154,6 +1194,10 @@ pub fn instantiate(context: &mut Context, sp!(loc, t_): Type) -> Type {
         Apply(abilities_opt, n, ty_args) => {
             instantiate_apply(context, loc, abilities_opt, n, ty_args)
         }
+        Fun(args, result) => Fun(
+            args.into_iter().map(|t| instantiate(context, t)).collect(),
+            Box::new(instantiate(context, *result)),
+        ),
         x @ Param(_) => x,
         Var(_) => panic!("ICE instantiate type variable"),
     };
@@ -1169,7 +1213,7 @@ fn instantiate_apply(
     ty_args: Vec<Type>,
 ) -> Type_ {
     let tparam_constraints: Vec<AbilitySet> = match &n {
-        sp!(nloc, N::TypeName_::Builtin(b)) => b.value.tparam_constraints(*nloc, ty_args.len()),
+        sp!(nloc, N::TypeName_::Builtin(b)) => b.value.tparam_constraints(*nloc),
         sp!(_, N::TypeName_::Multiple(len)) => {
             debug_assert!(abilities_opt.is_none(), "ICE instantiated expanded type");
             (0..*len).map(|_| AbilitySet::empty()).collect()
@@ -1206,9 +1250,6 @@ fn instantiate_type_args(
     let tvar_case = match n {
         Some(TypeName_::Multiple(_)) => {
             TVarCase::Single("Invalid expression list type argument".to_owned())
-        }
-        Some(TypeName_::Builtin(sp!(_, BuiltinTypeName_::Fun))) => {
-            TVarCase::Function("Invalid expression list type argument".to_owned())
         }
         None | Some(TypeName_::Builtin(_)) | Some(TypeName_::ModuleType(_, _)) => TVarCase::Base,
     };
@@ -1270,7 +1311,6 @@ fn check_type_argument_arity<F: FnOnce() -> String>(
 
 enum TVarCase {
     Single(String),
-    Function(String),
     Base,
 }
 
@@ -1280,20 +1320,13 @@ fn make_tparams(
     case: TVarCase,
     tparam_constraints: Vec<(Loc, AbilitySet)>,
 ) -> Vec<Type> {
-    let arity = tparam_constraints.len();
     tparam_constraints
         .into_iter()
-        .enumerate()
-        .map(|(i, (vloc, constraint))| {
+        .map(|(vloc, constraint)| {
             let tvar = make_tvar(context, vloc);
             context.add_ability_set_constraint(loc, None::<String>, tvar.clone(), constraint);
             match &case {
-                TVarCase::Function(_) if i + 1 == arity => {
-                    // Last arg (return type of a function): do not add any constraint
-                }
-                TVarCase::Function(msg) | TVarCase::Single(msg) => {
-                    context.add_single_type_constraint(loc, msg, tvar.clone())
-                }
+                TVarCase::Single(msg) => context.add_single_type_constraint(loc, msg, tvar.clone()),
                 TVarCase::Base => {
                     context.add_base_type_constraint(loc, "Invalid type argument", tvar.clone())
                 }
@@ -1312,6 +1345,7 @@ pub enum TypingError {
     SubtypeError(Box<Type>, Box<Type>),
     Incompatible(Box<Type>, Box<Type>),
     ArityMismatch(usize, Box<Type>, usize, Box<Type>),
+    FunArityMismatch(usize, Box<Type>, usize, Box<Type>),
     RecursiveType(Loc),
 }
 
@@ -1390,10 +1424,23 @@ fn join_impl(
                 k1,
                 k2
             );
-            let arity = tys1.len();
-            let (subst, tys) =
-                join_impl_types(subst, case, |pos| n1.value.variance(pos, arity), tys1, tys2)?;
+            let (subst, tys) = join_impl_types(subst, case, tys1, tys2)?;
             Ok((subst, sp(*loc, Apply(k2.clone(), n2.clone(), tys))))
+        }
+        (sp!(_, Fun(a1, _)), sp!(_, Fun(a2, _))) if a1.len() != a2.len() => {
+            Err(TypingError::FunArityMismatch(
+                a1.len(),
+                Box::new(lhs.clone()),
+                a2.len(),
+                Box::new(rhs.clone()),
+            ))
+        }
+        (sp!(_, Fun(a1, r1)), sp!(loc, Fun(a2, r2))) => {
+            // TODO this is going to likely lead to some strange error locations/messages
+            // since the RHS in subtyping is currently assumed to be an annotation
+            let (subst, args) = join_impl_types(subst, case, a2, a1)?;
+            let (subst, result) = join_impl(subst, case, r1, r2)?;
+            Ok((subst, sp(*loc, Fun(args, Box::new(result)))))
         }
         (sp!(loc1, Var(id1)), sp!(loc2, Var(id2))) => {
             if *id1 == *id2 {
@@ -1446,18 +1493,14 @@ fn join_impl(
 fn join_impl_types(
     mut subst: Subst,
     case: TypingCase,
-    variance: impl Fn(usize) -> Variance,
     tys1: &[Type],
     tys2: &[Type],
 ) -> Result<(Subst, Vec<Type>), TypingError> {
     // if tys1.len() != tys2.len(), we will get an error when instantiating the type elsewhere
     // as all types are instantiated as a sanity check
     let mut tys = vec![];
-    for (pos, (ty1, ty2)) in tys1.iter().zip(tys2).enumerate() {
-        let (nsubst, t) = match (case, variance(pos)) {
-            (TypingCase::Subtype, Variance::ContraVariant) => join_impl(subst, case, ty2, ty1)?,
-            _ => join_impl(subst, case, ty1, ty2)?,
-        };
+    for (ty1, ty2) in tys1.iter().zip(tys2) {
+        let (nsubst, t) = join_impl(subst, case, ty1, ty2)?;
         subst = nsubst;
         tys.push(t)
     }
@@ -1545,6 +1588,13 @@ fn join_bind_tvar(subst: &mut Subst, loc: Loc, tvar: TVar, ty: Type) -> Result<b
                 .iter()
                 .rev()
                 .for_each(|inner| used_tvars(used, inner)),
+            T::Fun(inner_args, inner_ret) => {
+                inner_args
+                    .iter()
+                    .rev()
+                    .for_each(|inner| used_tvars(used, inner));
+                used_tvars(used, inner_ret)
+            }
             T::Unit | T::Param(_) | T::Anything | T::UnresolvedError => (),
         }
     }
@@ -1586,25 +1636,5 @@ fn check_num_tvar_(subst: &Subst, ty: &Type) -> bool {
             }
         }
         _ => false,
-    }
-}
-//**************************************************************************************************
-// Function type check
-//**************************************************************************************************
-
-pub fn check_non_fun(context: &mut Context, ty: &Type) {
-    if let sp!(
-        loc,
-        Type_::Apply(
-            _,
-            sp!(_, TypeName_::Builtin(sp!(_, BuiltinTypeName_::Fun))),
-            _
-        )
-    ) = ty
-    {
-        context.env.add_diag(diag!(
-            TypeSafety::InvalidFunctionType,
-            (*loc, "function type only allowed for macro arguments")
-        ))
     }
 }

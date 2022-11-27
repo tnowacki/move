@@ -440,7 +440,7 @@ fn module_(
             P::ModuleMember::Use(_) => unreachable!(),
             P::ModuleMember::Friend(f) => friend(context, &mut friends, f),
             P::ModuleMember::Function(mut f) => {
-                if !context.is_source_definition {
+                if !context.is_source_definition && f.macro_.is_none() {
                     f.body.value = P::FunctionBody_::Native
                 }
                 function(context, &mut functions, f)
@@ -1198,7 +1198,7 @@ fn function_(context: &mut Context, pfunction: P::Function) -> (FunctionName, E:
     let P::Function {
         attributes: pattributes,
         loc,
-        is_macro,
+        macro_,
         name,
         visibility: pvisibility,
         entry,
@@ -1209,7 +1209,7 @@ fn function_(context: &mut Context, pfunction: P::Function) -> (FunctionName, E:
     assert!(context.exp_specs.is_empty());
     let attributes = flatten_attributes(context, AttributePosition::Function, pattributes);
     let visibility = visibility(context, pvisibility);
-    let (old_aliases, signature) = function_signature(context, psignature);
+    let (old_aliases, signature) = function_signature(context, macro_, name.loc(), psignature);
     let acquires = acquires
         .into_iter()
         .flat_map(|a| name_access_chain(context, Access::Type, a))
@@ -1219,7 +1219,7 @@ fn function_(context: &mut Context, pfunction: P::Function) -> (FunctionName, E:
     let fdef = E::Function {
         attributes,
         loc,
-        is_macro,
+        macro_,
         visibility,
         entry,
         signature,
@@ -1245,6 +1245,8 @@ fn visibility(context: &mut Context, pvisibility: P::Visibility) -> E::Visibilit
 
 fn function_signature(
     context: &mut Context,
+    macro_loc_opt: Option<Loc>,
+    fname_loc: Loc,
     psignature: P::FunctionSignature,
 ) -> (OldAliasMap, E::FunctionSignature) {
     let P::FunctionSignature {
@@ -1260,8 +1262,16 @@ fn function_signature(
         .into_iter()
         .map(|(v, t)| (v, type_(context, t)))
         .collect::<Vec<_>>();
-    for (v, _) in &parameters {
-        check_valid_local_name(context, v)
+    for (v, sp!(ty_loc, ty_)) in &parameters {
+        match (ty_, macro_loc_opt) {
+            (E::Type_::Fun(_, _), Some(macro_loc)) => {
+                check_macro_lambda_parameter_name(context, macro_loc, v, ty_loc)
+            }
+            (_, Some(macro_loc)) => {
+                check_valid_macro_non_lambda_parameter(context, macro_loc, v, ty_loc)
+            }
+            _ => check_valid_non_macro_parameter_name(context, fname_loc, v),
+        }
     }
     let return_type = type_(context, pret_ty);
     let signature = E::FunctionSignature {
@@ -1280,6 +1290,64 @@ fn function_body(context: &mut Context, sp!(loc, pbody_): P::FunctionBody) -> E:
         PF::Defined(seq) => EF::Defined(sequence(context, loc, seq)),
     };
     sp(loc, body_)
+}
+
+fn check_macro_lambda_parameter_name(context: &mut Context, macro_loc: Loc, v: &Var, ty_loc: &Loc) {
+    if !v.is_macro_identifier() {
+        let msg = format!(
+            "Lambda parameters in macros must start with '{}'",
+            Var::MACRO_IDENT_START
+        );
+        let ty_msg = "Given a lambda type here";
+        let mmsg = "Declared a macro function here";
+        context.env.add_diag(diag!(
+            Declarations::InvalidName,
+            (v.loc(), msg),
+            (*ty_loc, ty_msg),
+            (macro_loc, mmsg)
+        ))
+    }
+}
+
+fn check_valid_macro_non_lambda_parameter(
+    context: &mut Context,
+    macro_loc: Loc,
+    v: &Var,
+    ty_loc: &Loc,
+) {
+    if v.is_macro_identifier() {
+        let msg = format!(
+            "Only lambda parameters in macros can start with '{}'",
+            Var::MACRO_IDENT_START
+        );
+        let ty_msg = "Given a non-lambda type here";
+        let mmsg = "Declared a macro function here";
+        context.env.add_diag(diag!(
+            Declarations::InvalidName,
+            (v.loc(), msg),
+            (*ty_loc, ty_msg),
+            (macro_loc, mmsg)
+        ))
+    } else {
+        check_valid_local_name(context, v)
+    }
+}
+
+fn check_valid_non_macro_parameter_name(context: &mut Context, fname_loc: Loc, v: &Var) {
+    if v.is_macro_identifier() {
+        let msg = format!(
+            "Only lambda parameters in macros can start with '{}'",
+            Var::MACRO_IDENT_START
+        );
+        let mmsg = "A macro function must have the 'macro' modifier";
+        context.env.add_diag(diag!(
+            Declarations::InvalidName,
+            (v.loc(), msg),
+            (fname_loc, mmsg)
+        ))
+    } else {
+        check_valid_local_name(context, v)
+    }
 }
 
 //**************************************************************************************************
@@ -1331,7 +1399,7 @@ fn spec_target(context: &mut Context, sp!(loc, pt): P::SpecBlockTarget) -> E::Sp
         PT::Member(name, signature_opt) => ET::Member(
             name,
             signature_opt.map(|s| {
-                let (old_aliases, signature) = function_signature(context, *s);
+                let (old_aliases, signature) = function_signature(context, None, name.loc, *s);
                 context.set_to_outer_scope(old_aliases);
                 Box::new(signature)
             }),
@@ -1423,7 +1491,7 @@ fn spec_member(context: &mut Context, sp!(loc, pm): P::SpecBlockMember) -> E::Sp
             signature,
             body,
         } => {
-            let (old_aliases, signature) = function_signature(context, signature);
+            let (old_aliases, signature) = function_signature(context, None, name.loc(), signature);
             let body = function_body(context, body);
             context.set_to_outer_scope(old_aliases);
             EM::Function {
@@ -1881,7 +1949,7 @@ fn exp_(context: &mut Context, sp!(loc, pe_): P::Exp) -> E::Exp {
             match bs_opt {
                 Some(bs) => EE::Lambda(bs, Box::new(e)),
                 None => {
-                    assert!(context.env.has_diags());
+                    assert!(context.env.has_errors());
                     EE::UnresolvedError
                 }
             }

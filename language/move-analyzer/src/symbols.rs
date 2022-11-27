@@ -342,6 +342,13 @@ fn type_to_ide_string(sp!(_, t): &Type) -> String {
                 )
             }
         },
+        Type_::Fun(args, result) => {
+            format!(
+                "|{}|{}",
+                type_list_to_ide_string(args),
+                type_to_ide_string(result),
+            )
+        }
         Type_::Anything => "_".to_string(),
         Type_::Var(_) => "invalid type (var)".to_string(),
         Type_::UnresolvedError => "invalid type (unresolved)".to_string(),

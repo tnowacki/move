@@ -17,6 +17,7 @@ pub enum Tok {
     NumTypedValue,
     ByteStringValue,
     Identifier,
+    MacroIdentifier,
     Exclaim,
     ExclaimEqual,
     Percent,
@@ -92,6 +93,7 @@ impl fmt::Display for Tok {
             NumTypedValue => "[NumTyped]",
             ByteStringValue => "[ByteString]",
             Identifier => "[Identifier]",
+            MacroIdentifier => "[MacroIdentifier]",
             Exclaim => "!",
             ExclaimEqual => "!=",
             Percent => "%",
@@ -457,6 +459,10 @@ fn find_token(
                 let len = get_name_len(text);
                 (get_name_token(&text[..len]), len)
             }
+        }
+        '$' => {
+            let len = get_name_len(&text[1..]);
+            (Tok::MacroIdentifier, len + 1)
         }
         '&' => {
             if text.starts_with("&mut ") {

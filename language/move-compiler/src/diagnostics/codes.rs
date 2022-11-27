@@ -181,8 +181,10 @@ codes!(
                 (NOTE: this may become an error in the future)",
             severity: Warning
         },
-        InvalidCallTarget: { msg: "invalid call target", severity: BlockingError },
-        InvalidFunctionType: { msg: "invalid usage of function type", severity: BlockingError },
+        InvalidCallTarget: { msg: "invalid function call", severity: BlockingError },
+        UnexpectedFunctionType: { msg: "invalid usage of lambda type", severity: BlockingError },
+        UnexpectedLambda: { msg: "invalid usage of lambda", severity: BlockingError },
+        CannotExpandMacro: { msg: "unable to expand macro function", severity: BlockingError },
     ],
     // errors for ability rules. mostly typing/translate
     AbilitySafety: [
@@ -237,6 +239,7 @@ codes!(
         BytecodeGeneration: { msg: "BYTECODE GENERATION FAILED", severity: Bug },
         BytecodeVerification: { msg: "BYTECODE VERIFICATION FAILED", severity: Bug },
         Unimplemented: { msg: "Not yet implemented", severity: BlockingError },
+        InvariantViolation: { msg: "INTERNAL COMPILER ERROR", severity: Bug, }
     ],
     Derivation: [
         DeriveFailed: { msg: "attribute derivation failed", severity: BlockingError }

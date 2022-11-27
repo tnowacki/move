@@ -109,6 +109,11 @@ impl<'a> Context<'a> {
                     }
                 }
             }
+            Fun(args, result) => {
+                args.iter()
+                    .for_each(|t| Self::add_tparam_edges(acc, tparam, info.clone(), t));
+                Self::add_tparam_edges(acc, tparam, info, result)
+            }
         }
     }
 
@@ -228,7 +233,6 @@ fn exp(context: &mut Context, e: &T::Exp) {
             context.add_usage(e.exp.loc, &call.module, &call.name, &call.type_arguments);
             exp(context, &call.arguments)
         }
-        E::VarCall(_, args) => exp(context, args),
         E::IfElse(eb, et, ef) => {
             exp(context, eb);
             exp(context, et);

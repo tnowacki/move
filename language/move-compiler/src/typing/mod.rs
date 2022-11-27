@@ -7,5 +7,6 @@ pub(crate) mod core;
 mod expand;
 mod globals;
 mod infinite_instantiations;
+pub(crate) mod macro_expand;
 mod recursive_structs;
 pub(crate) mod translate;

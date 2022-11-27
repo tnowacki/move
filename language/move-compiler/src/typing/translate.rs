@@ -10,12 +10,10 @@ use crate::{
     diag,
     diagnostics::{codes::*, Diagnostic},
     expansion::ast::{Fields, ModuleIdent, Value_},
-    naming::ast::{self as N, BuiltinTypeName_, TParam, TParamID, Type, TypeName_, Type_},
-    parser::ast::{
-        Ability_, BinOp_, ConstantName, Field, FunctionName, StructName, UnaryOp_, Visibility,
-    },
+    naming::ast::{self as N, TParam, TParamID, Type, TypeName_, Type_, Var},
+    parser::ast::{Ability_, BinOp_, ConstantName, Field, FunctionName, StructName, UnaryOp_},
     shared::{unique_map::UniqueMap, *},
-    typing::ast as T,
+    typing::{ast as T, macro_expand},
     FullyCompiledProgram,
 };
 use move_ir_types::location::*;
@@ -73,7 +71,7 @@ fn module(
         .iter_mut()
         .for_each(|(_, _, s)| struct_def(context, s));
     let constants = nconstants.map(|name, c| constant(context, name, c));
-    let functions = nfunctions.map(|name, f| function(context, name, f, false));
+    let functions = nfunctions.filter_map(|name, f| function(context, name, f, false));
     assert!(context.constraints.is_empty());
     T::ModuleDefinition {
         package_name,
@@ -110,7 +108,7 @@ fn script(context: &mut Context, nscript: N::Script) -> T::Script {
     } = nscript;
     context.bind_script_constants(&nconstants);
     let constants = nconstants.map(|name, c| constant(context, name, c));
-    let function = function(context, function_name, nfunction, true);
+    let function = function(context, function_name, nfunction, true).unwrap();
     context.current_script_constants = None;
     T::Script {
         package_name,
@@ -131,11 +129,11 @@ fn function(
     name: FunctionName,
     f: N::Function,
     is_script: bool,
-) -> T::Function {
+) -> Option<T::Function> {
     let loc = name.loc();
     let N::Function {
         attributes,
-        is_macro,
+        macro_,
         visibility,
         entry,
         mut signature,
@@ -145,6 +143,7 @@ fn function(
     assert!(context.constraints.is_empty());
     context.reset_for_module_item();
     context.current_function = Some(name);
+    context.in_macro_function = macro_.is_some();
     function_signature(context, &signature);
     if is_script {
         let mk_msg = || {
@@ -163,30 +162,23 @@ fn function(
             sp(loc, Type_::Unit),
         );
     }
-    if is_macro {
-        expand::macro_signature(context, &mut signature);
-    } else {
-        expand::function_signature(context, &mut signature);
-    }
-
+    expand::function_signature(context, &mut signature);
     let body = function_body(context, &acquires, n_body);
     context.current_function = None;
-
-    if is_macro && !context.env.has_blocking_diags() {
-        // TODO: remove once macro expansion is implemented
-        // flag as an error so we bail out after typing
-        context
-            .env
-            .add_diag(diag!(Bug::Unimplemented, (loc, "macro expansion")));
-    }
-    T::Function {
-        is_macro,
-        attributes,
-        visibility,
-        entry,
-        signature,
-        acquires,
-        body,
+    context.in_macro_function = false;
+    // macros will be re-type checked once inlined, so discard the function definition
+    // we only type check them local to sanity check them for an improved developer experience
+    if macro_.is_none() {
+        Some(T::Function {
+            attributes,
+            visibility,
+            entry,
+            signature,
+            acquires,
+            body,
+        })
+    } else {
+        None
     }
 }
 
@@ -407,10 +399,6 @@ mod check_valid_constant {
                 exp(context, &call.arguments);
                 "Module calls are"
             }
-            E::VarCall(_, args) => {
-                exp(context, args);
-                "Local calls are"
-            }
             E::Builtin(b, args) => {
                 exp(context, args);
                 s = format!("'{}' is", b);
@@ -539,7 +527,6 @@ fn struct_def(context: &mut Context, s: &mut N::StructDefinition) {
         let loc = idx_ty.1.loc;
         let subst_ty = core::subst_tparams(tparam_subst, idx_ty.1.clone());
         let inst_ty = core::instantiate(context, subst_ty);
-        core::check_non_fun(context, &inst_ty);
         context.add_base_type_constraint(loc, "Invalid field type", inst_ty.clone());
         for declared_ability in declared_abilities {
             let required = declared_ability.value.requires();
@@ -645,10 +632,21 @@ fn visit_type_params(
         Type_::Param(param) => {
             f(context, ty.loc, param, param_pos);
         }
-        // References cannot appear in structs, but we still report them as a non-phantom position
-        // for full information.
+        // References and functions cannot appear in structs, but we still report them as a
+        // non-phantom position for full information.
         Type_::Ref(_, ty) => {
             visit_type_params(context, ty, ParamPos::NonPhantom(NonPhantomPos::TypeArg), f)
+        }
+        Type_::Fun(args, result) => {
+            for ty in args {
+                visit_type_params(context, ty, ParamPos::NonPhantom(NonPhantomPos::TypeArg), f)
+            }
+            visit_type_params(
+                context,
+                result,
+                ParamPos::NonPhantom(NonPhantomPos::TypeArg),
+                f,
+            )
         }
         Type_::Apply(_, n, ty_args) => match &n.value {
             // Tuples cannot appear in structs, but we still report them as a non-phantom position
@@ -741,6 +739,9 @@ fn has_unresolved_error_type(ty: &Type) -> bool {
         Type_::UnresolvedError => true,
         Type_::Ref(_, ty) => has_unresolved_error_type(ty),
         Type_::Apply(_, _, ty_args) => ty_args.iter().any(has_unresolved_error_type),
+        Type_::Fun(args, result) => {
+            args.iter().any(has_unresolved_error_type) || has_unresolved_error_type(result)
+        }
         Type_::Param(_) | Type_::Var(_) | Type_::Anything | Type_::Unit => false,
     }
 }
@@ -791,6 +792,37 @@ fn typing_error<T: ToString, F: FnOnce() -> T>(
                     "Found expression list of length {}: {}. It is not compatible with the other \
                      type of length {}.",
                     n2, t2_str, n1
+                )
+            };
+
+            diag!(
+                TypeSafety::JoinError,
+                (loc, msg),
+                (loc1, msg1),
+                (loc2, msg2)
+            )
+        }
+        FunArityMismatch(a1, t1, a2, t2) => {
+            let loc1 = core::best_loc(subst, &t1);
+            let loc2 = core::best_loc(subst, &t2);
+            let t1_str = core::error_format(&t1, subst);
+            let t2_str = core::error_format(&t2, subst);
+            let msg1 = if from_subtype {
+                format!("Given lambda with {} arguments: {}", a1, t1_str)
+            } else {
+                format!(
+                    "Found a lambda type with {} arguments: {}. It is not compatible with the \
+                     other type with {} arguments.",
+                    a1, t1_str, a2
+                )
+            };
+            let msg2 = if from_subtype {
+                format!("Expected a lambda with {} arguments: {}", a2, t2_str)
+            } else {
+                format!(
+                    "Found a lambda type with {} arguments: {}. It is not compatible with the \
+                     other type with {} arguments.",
+                    a2, t2_str, a1
                 )
             };
 
@@ -956,24 +988,30 @@ fn lambda(
     args: N::LValueList,
     body: N::Exp,
 ) -> (N::Type, T::UnannotatedExp_) {
-    let old_locals = context.save_locals_scope();
-    let (declared, args) = bind_list(context, args, None);
-    let body = exp_(context, body);
-    context.close_locals_scope(old_locals, declared);
-    let fun_type_ctor = sp(loc, TypeName_::Builtin(sp(loc, BuiltinTypeName_::Fun)));
-    let fun_type_args = args
+    let arg_tys: Vec<Type> = args
         .value
         .iter()
-        .filter_map(|lv| match &lv.value {
-            T::LValue_::Var(_, ty) => Some(ty.as_ref().clone()),
-            _ => None,
-        })
-        .chain(std::iter::once(body.ty.clone()))
+        .map(|sp!(aloc, _)| core::make_tvar(context, *aloc))
         .collect();
-    (
-        sp(loc, N::Type_::Apply(None, fun_type_ctor, fun_type_args)),
-        T::UnannotatedExp_::Lambda(args, Box::new(body)),
-    )
+    let arg_ty_annot = match args.value.len() {
+        0 => sp(loc, Type_::Unit),
+        1 => sp(loc, arg_tys[0].value.clone()),
+        _ => Type_::multiple(loc, arg_tys.clone()),
+    };
+    let args = bind_list(context, args, Some(arg_ty_annot));
+    let ret_ty = core::make_tvar(context, body.loc);
+    // TODO the body should really be type checked after the call is checked
+    // this will be more important once there are receiver/method calls
+    let body = exp_(context, body);
+    join(
+        context,
+        loc,
+        || "ICE jointing with tvar should not fail",
+        ret_ty.clone(),
+        body.ty.clone(),
+    );
+    let ty = sp(loc, N::Type_::Fun(arg_tys, Box::new(ret_ty)));
+    (ty, T::UnannotatedExp_::Lambda(args, Box::new(body)))
 }
 
 fn sequence(context: &mut Context, seq: N::Sequence) -> T::Sequence {
@@ -1238,10 +1276,18 @@ fn exp_inner(context: &mut Context, sp!(eloc, ne_): N::Exp) -> T::Exp {
             let ty = context.get_local(&var);
             (ty, TE::Use(var))
         }
-
-        NE::ModuleCall(m, f, is_macro, ty_args_opt, sp!(argloc, nargs_)) => {
+        NE::ModuleCall(m, f, /* is_macro */ true, ty_args_opt, sp!(argloc, nargs_)) => {
+            let args = exp_vec(context, nargs_.clone());
+            // type check the call for sanity
+            module_call(context, eloc, m, f, true, ty_args_opt.clone(), argloc, args);
+            match macro_expand::call(context, eloc, m, f, ty_args_opt, sp(argloc, nargs_)) {
+                None => (context.error_type(eloc), TE::UnresolvedError),
+                Some(expanded) => return exp_(context, expanded),
+            }
+        }
+        NE::ModuleCall(m, f, /* is_macro */ false, ty_args_opt, sp!(argloc, nargs_)) => {
             let args = exp_vec(context, nargs_);
-            module_call(context, eloc, m, f, is_macro, ty_args_opt, argloc, args)
+            module_call(context, eloc, m, f, false, ty_args_opt, argloc, args)
         }
         NE::VarCall(var, sp!(argloc, nargs_)) => {
             let args = exp_vec(context, nargs_);
@@ -2046,49 +2092,29 @@ fn var_call(
     argloc: Loc,
     args: Vec<T::Exp>,
 ) -> (Type, T::UnannotatedExp_) {
-    let ty = context.get_local(var.0.loc, "function usage", &var);
-    match ty.value {
+    let fn_ty = context.get_local(&var);
+    let (fn_arg_tys, fn_result_ty) = match core::unfold_type(&context.subst, fn_ty.clone()).value {
+        Type_::Fun(args, result) => (args, result),
         Type_::UnresolvedError => {
-            assert!(context.env.has_diags());
-            (ty, T::UnannotatedExp_::UnresolvedError)
+            assert!(context.env.has_errors());
+            return (context.error_type(loc), T::UnannotatedExp_::UnresolvedError);
         }
-        Type_::Apply(_, sp!(_, TypeName_::Builtin(sp!(_, BuiltinTypeName_::Fun))), targs) => {
-            let (arguments, arg_tys) = call_args(
-                context,
-                loc,
-                || format!("Invalid call of '{}'", var),
-                targs.len() - 1,
-                argloc,
-                args,
-            );
-            assert!(arg_tys.len() == targs.len() - 1);
-            for (arg_ty, param_ty) in arg_tys
-                .into_iter()
-                .zip(targs[0..targs.len() - 1].iter().cloned())
-            {
-                let msg = || format!("Invalid call of '{}'. Invalid argument type", var);
-                subtype(context, loc, msg, arg_ty, param_ty);
-            }
-            (
-                targs[targs.len() - 1].clone(),
-                T::UnannotatedExp_::VarCall(var, arguments),
-            )
+        _ => {
+            let ty_str = core::error_format(&fn_ty, &context.subst);
+            let msg = format!("Expected a lambda type type but found {}", ty_str);
+            context
+                .env
+                .add_diag(diag!(TypeSafety::JoinError, (var.loc, msg)));
+            return (context.error_type(loc), T::UnannotatedExp_::UnresolvedError);
         }
-        ty_ => {
-            let ty_str = core::error_format_(&ty_, &context.subst);
-            context.env.add_diag(diag!(
-                TypeSafety::JoinError,
-                (
-                    var.loc(),
-                    format!("Expected a function type but found {}", ty_str)
-                )
-            ));
-            (
-                context.error_type(ty.loc),
-                T::UnannotatedExp_::UnresolvedError,
-            )
-        }
-    }
+    };
+    let msg = || format!("Invalid call of '{}'", var.value.name);
+    let given = args.into_iter().map(|e| e.ty).collect();
+    // make arg types for arity checking
+    make_arg_types(context, loc, msg, fn_arg_tys.len(), argloc, given);
+    // we always return an error for the expression, since VarCall is only valid inside of macros,
+    // whose bodies will be discarded. But we need a valid type to keep sanity checking the macro
+    (*fn_result_ty, T::UnannotatedExp_::UnresolvedError)
 }
 
 fn module_call(
@@ -2101,19 +2127,31 @@ fn module_call(
     argloc: Loc,
     args: Vec<T::Exp>,
 ) -> (Type, T::UnannotatedExp_) {
-    let (_, ty_args, parameters, acquires, ret_ty, decl_is_macro) =
+    let (loc, ty_args, parameters, acquires, ret_ty, decl_macro) =
         core::make_function_type(context, loc, &m, &f, ty_args_opt);
+    let decl_is_macro = decl_macro.is_some();
     if is_macro != decl_is_macro {
+        let decl_loc = decl_macro.unwrap_or(loc);
+        let call_msg = if decl_is_macro {
+            format!(
+                "'{f}' is a macro function and must be called with a `!`. \
+                Try replacing '{f}' with '{f}!'"
+            )
+        } else {
+            format!(
+                "'{f}' is not a macro function and cannot be called with a `!`. \
+                Try replacing '{f}!' with '{f}'"
+            )
+        };
+        let decl_msg = if decl_is_macro {
+            "Declared a normal (non-macro) function here"
+        } else {
+            "Declared a macro function here"
+        };
         context.env.add_diag(diag!(
             TypeSafety::InvalidCallTarget,
-            (
-                loc,
-                if is_macro {
-                    format!("'{}' is not a macro but a function", f)
-                } else {
-                    format!("'{}' is not a function but a macro", f)
-                }
-            )
+            (loc, call_msg),
+            (decl_loc, decl_msg),
         ));
     }
     let (arguments, arg_tys) = call_args(
@@ -2144,13 +2182,6 @@ fn module_call(
         parameter_types: params_ty_list,
         acquires,
     };
-    if is_macro && !context.env.has_blocking_diags() {
-        // TODO: remove once macro expansion is implemented
-        // flag as an error so we bail out after typing
-        context
-            .env
-            .add_diag(diag!(Bug::Unimplemented, (loc, "macro expansion")));
-    }
     (ret_ty, T::UnannotatedExp_::ModuleCall(Box::new(call)))
 }
 

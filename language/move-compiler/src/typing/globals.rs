@@ -5,7 +5,7 @@
 use super::core::{self, Context, Subst};
 use crate::{
     diag,
-    naming::ast::{self as N, BuiltinTypeName_, Type, TypeName_, Type_},
+    naming::ast::{self as N, Type, TypeName_, Type_},
     parser::ast::{Ability_, StructName},
     typing::ast as T,
 };
@@ -110,9 +110,6 @@ fn exp(
             }
 
             exp(context, annotated_acquires, seen, &call.arguments);
-        }
-        E::VarCall(_, args) => {
-            exp(context, annotated_acquires, seen, args);
         }
         E::Builtin(b, args) => {
             builtin_function(context, annotated_acquires, seen, &e.exp.loc, b);
@@ -284,7 +281,7 @@ where
             assert!(context.env.has_errors());
             return None;
         }
-        T::Param(_) | T::Apply(_, sp!(_, TN::Builtin(sp!(_, BuiltinTypeName_::Fun))), _) => {
+        T::Param(_) => {
             let ty_debug = core::error_format(global_type, &Subst::empty());
             let tmsg = format!(
                 "Expected a struct type. Global storage operations are restricted to struct types \
@@ -299,11 +296,18 @@ where
             ));
             return None;
         }
-        T::Apply(Some(abilities), sp!(_, TN::Multiple(_)), _)
-        | T::Apply(Some(abilities), sp!(_, TN::Builtin(_)), _) => {
-            // Key ability is checked by constraints
-            assert!(!abilities.has_ability_(Ability_::Key));
-            assert!(context.env.has_diags());
+        T::Fun(_, _) => {
+            let ty_debug = core::error_format(global_type, &Subst::empty());
+            let tmsg = format!(
+                "Expected a struct type. Global storage operations are restricted to struct types \
+                 declared in the current module. Found a lambda type: {}",
+                ty_debug
+            );
+            context.env.add_diag(diag!(
+                TypeSafety::ExpectedSpecificType,
+                (*loc, msg()),
+                (*tloc, tmsg)
+            ));
             return None;
         }
         T::Apply(Some(_), sp!(_, TN::ModuleType(m, s)), _args) => (*m, s),

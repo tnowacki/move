@@ -407,7 +407,7 @@ fn add_drop_ability_tip(context: &Context, diag: &mut Diagnostic, st: SingleType
                 T::Param(TParam { abilities, .. }) | T::Apply(Some(abilities), _, _) => {
                     abilities.clone()
                 }
-                T::Var(_) | T::Apply(None, _, _) => panic!("ICE expansion failed"),
+                T::Fun(_, _) | T::Var(_) | T::Apply(None, _, _) => panic!("ICE expansion failed"),
             };
             (ty_arg, abilities)
         }),

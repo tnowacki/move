@@ -199,7 +199,7 @@ pub struct SpecId(usize);
 pub struct Function {
     pub attributes: Attributes,
     pub loc: Loc,
-    pub is_macro: bool,
+    pub macro_: Option<Loc>,
     pub visibility: Visibility,
     pub entry: Option<Loc>,
     pub signature: FunctionSignature,
@@ -1236,7 +1236,7 @@ impl AstDebug for (FunctionName, &Function) {
             Function {
                 attributes,
                 loc: _loc,
-                is_macro,
+                macro_,
                 visibility,
                 entry,
                 signature,
@@ -1253,11 +1253,10 @@ impl AstDebug for (FunctionName, &Function) {
         if let FunctionBody_::Native = &body.value {
             w.write("native ");
         }
-        if *is_macro {
+        if macro_.is_some() {
             w.write(&format!("macro {}", name));
-        } else {
-            w.write(&format!("fun {}", name));
         }
+        w.write(&format!("fun {}", name));
         signature.ast_debug(w);
         if !acquires.is_empty() {
             w.write(" acquires ");

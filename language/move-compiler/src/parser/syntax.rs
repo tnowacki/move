@@ -287,6 +287,22 @@ fn parse_identifier(context: &mut Context) -> Result<Name, Box<Diagnostic>> {
     Ok(spanned(context.tokens.file_hash(), start_loc, end_loc, id))
 }
 
+// Parse a macro identifier:
+//      MacroIdentifier = <MacroIdentifierValue>
+fn parse_macro_identifier(context: &mut Context) -> Result<Name, Box<Diagnostic>> {
+    if context.tokens.peek() != Tok::MacroIdentifier {
+        return Err(unexpected_token_error(
+            context.tokens,
+            "an identifier prefixed by '$'",
+        ));
+    }
+    let start_loc = context.tokens.start_loc();
+    let id = context.tokens.content().into();
+    context.tokens.advance()?;
+    let end_loc = context.tokens.previous_end_loc();
+    Ok(spanned(context.tokens.file_hash(), start_loc, end_loc, id))
+}
+
 // Parse a numerical address value
 //     NumericalAddress = <Number>
 fn parse_address_bytes(
@@ -324,6 +340,11 @@ fn parse_leading_name_access_<'a, F: FnOnce() -> &'a str>(
             let n = parse_identifier(context)?;
             Ok(sp(loc, LeadingNameAccess_::Name(n)))
         }
+        Tok::MacroIdentifier => {
+            let loc = current_token_loc(context.tokens);
+            let n = parse_macro_identifier(context)?;
+            Ok(sp(loc, LeadingNameAccess_::Name(n)))
+        }
         Tok::NumValue => {
             let sp!(loc, addr) = parse_address_bytes(context)?;
             Ok(sp(loc, LeadingNameAccess_::AnonymousAddress(addr)))
@@ -333,9 +354,12 @@ fn parse_leading_name_access_<'a, F: FnOnce() -> &'a str>(
 }
 
 // Parse a variable name:
-//      Var = <Identifier>
+//      Var = <Identifier> | <MacroIdentifier>
 fn parse_var(context: &mut Context) -> Result<Var, Box<Diagnostic>> {
-    Ok(Var(parse_identifier(context)?))
+    Ok(Var(match context.tokens.peek() {
+        Tok::MacroIdentifier => parse_macro_identifier(context)?,
+        _ => parse_identifier(context)?,
+    }))
 }
 
 // Parse a field name:
@@ -428,6 +452,7 @@ struct Modifiers {
     visibility: Option<Visibility>,
     entry: Option<Loc>,
     native: Option<Loc>,
+    macro_: Option<Loc>,
 }
 
 impl Modifiers {
@@ -436,6 +461,7 @@ impl Modifiers {
             visibility: None,
             entry: None,
             native: None,
+            macro_: None,
         }
     }
 }
@@ -467,8 +493,8 @@ fn parse_module_member_modifiers(context: &mut Context) -> Result<Modifiers, Box
                 let loc = current_token_loc(context.tokens);
                 context.tokens.advance()?;
                 if let Some(prev_loc) = mods.native {
-                    let msg = "Duplicate 'native' modifier".to_string();
-                    let prev_msg = "'native' modifier previously given here".to_string();
+                    let msg = "Duplicate 'native' modifier";
+                    let prev_msg = "'native' modifier previously given here";
                     context.env.add_diag(diag!(
                         Declarations::DuplicateItem,
                         (loc, msg),
@@ -476,6 +502,20 @@ fn parse_module_member_modifiers(context: &mut Context) -> Result<Modifiers, Box
                     ))
                 }
                 mods.native = Some(loc)
+            }
+            Tok::Macro => {
+                let loc = current_token_loc(context.tokens);
+                context.tokens.advance()?;
+                if let Some(prev_loc) = mods.macro_ {
+                    let msg = "Duplicate 'macro' modifier";
+                    let prev_msg = "'macro' modifier previously given here";
+                    context.env.add_diag(diag!(
+                        Declarations::DuplicateItem,
+                        (loc, msg),
+                        (prev_loc, prev_msg)
+                    ))
+                }
+                mods.macro_ = Some(loc)
             }
             Tok::Identifier if context.tokens.content() == ENTRY_MODIFIER => {
                 let loc = current_token_loc(context.tokens);
@@ -955,7 +995,7 @@ fn parse_term(context: &mut Context) -> Result<Exp, Box<Diagnostic>> {
             Exp_::Vector(vec_loc, tys_opt, args)
         }
 
-        Tok::Identifier => parse_name_exp(context)?,
+        Tok::Identifier | Tok::MacroIdentifier => parse_name_exp(context)?,
 
         Tok::NumValue => {
             // Check if this is a ModuleIdent (in a ModuleAccess).
@@ -1165,13 +1205,6 @@ fn parse_name_exp(context: &mut Context) -> Result<Exp_, Box<Diagnostic>> {
     // assume that the '<' is a boolean operator.
     let mut tys = None;
     let start_loc = context.tokens.start_loc();
-    if context.tokens.peek() == Tok::Exclaim {
-        context.tokens.advance()?;
-        let is_macro = true;
-        let rhs = parse_call_args(context)?;
-        return Ok(Exp_::Call(n, is_macro, tys, rhs));
-    }
-
     if context.tokens.peek() == Tok::Less && n.loc.end() as usize == start_loc {
         let loc = make_loc(context.tokens.file_hash(), start_loc, start_loc);
         tys = parse_optional_type_args(context)
@@ -1192,8 +1225,15 @@ fn parse_name_exp(context: &mut Context) -> Result<Exp_, Box<Diagnostic>> {
         }
 
         // Call: "(" Comma<Exp> ")"
-        Tok::Exclaim | Tok::LParen => {
-            let is_macro = false;
+        tok @ Tok::Exclaim | tok @ Tok::LParen => {
+            let is_macro = match tok {
+                Tok::Exclaim => {
+                    context.tokens.advance().unwrap();
+                    true
+                }
+                Tok::LParen => false,
+                _ => unreachable!(),
+            };
             let rhs = parse_call_args(context)?;
             Ok(Exp_::Call(n, is_macro, tys, rhs))
         }
@@ -1898,6 +1938,7 @@ fn parse_function_decl(
         visibility,
         mut entry,
         native,
+        macro_,
     } = modifiers;
 
     if let Some(Visibility::Script(vloc)) = visibility {
@@ -1916,13 +1957,6 @@ fn parse_function_decl(
         }
     }
 
-    // [ "macro" ] "fun" <FunctionDefName>
-    let is_macro = if context.tokens.peek() == Tok::Macro {
-        context.tokens.advance()?;
-        true
-    } else {
-        false
-    };
     consume_token(context.tokens, Tok::Fun)?;
     let name = FunctionName(parse_identifier(context)?);
     let type_parameters = parse_optional_type_parameters(context)?;
@@ -1996,7 +2030,7 @@ fn parse_function_decl(
         entry,
         signature,
         acquires,
-        is_macro,
+        macro_,
         name,
         body,
     })
@@ -2031,6 +2065,7 @@ fn parse_struct_decl(
         visibility,
         entry,
         native,
+        macro_,
     } = modifiers;
     if let Some(vis) = visibility {
         let msg = format!(
@@ -2044,9 +2079,15 @@ fn parse_struct_decl(
     }
     if let Some(loc) = entry {
         let msg = format!(
-            "Invalid constant declaration. '{}' is used only on functions",
+            "Invalid struct declaration. '{}' is used only on functions",
             ENTRY_MODIFIER
         );
+        context
+            .env
+            .add_diag(diag!(Syntax::InvalidModifier, (loc, msg)));
+    }
+    if let Some(loc) = macro_ {
+        let msg = "Invalid struct declaration. 'macro' is used only on functions";
         context
             .env
             .add_diag(diag!(Syntax::InvalidModifier, (loc, msg)));
@@ -2143,6 +2184,7 @@ fn parse_constant_decl(
         visibility,
         entry,
         native,
+        macro_,
     } = modifiers;
     if let Some(vis) = visibility {
         let msg = "Invalid constant declaration. Constants cannot have visibility modifiers as \
@@ -2166,6 +2208,13 @@ fn parse_constant_decl(
             .env
             .add_diag(diag!(Syntax::InvalidModifier, (loc, msg)));
     }
+    if let Some(loc) = macro_ {
+        let msg = "Invalid constant declaration. 'macro' constants are not supported";
+        context
+            .env
+            .add_diag(diag!(Syntax::InvalidModifier, (loc, msg)));
+    }
+
     consume_token(context.tokens, Tok::Const)?;
     let name = ConstantName(parse_identifier(context)?);
     consume_token(context.tokens, Tok::Colon)?;
@@ -2420,7 +2469,7 @@ fn parse_module(
                         Tok::Const => ModuleMember::Constant(parse_constant_decl(
                             attributes, start_loc, modifiers, context,
                         )?),
-                        Tok::Fun | Tok::Macro => ModuleMember::Function(parse_function_decl(
+                        Tok::Fun => ModuleMember::Function(parse_function_decl(
                             attributes, start_loc, modifiers, context,
                         )?),
                         Tok::Struct => ModuleMember::Struct(parse_struct_decl(
@@ -2430,13 +2479,12 @@ fn parse_module(
                             return Err(unexpected_token_error(
                                 context.tokens,
                                 &format!(
-                                    "a module member: '{}', '{}', '{}', '{}', '{}', '{}', or '{}'",
+                                    "a module member: '{}', '{}', '{}', '{}', '{}', or '{}'",
                                     Tok::Spec,
                                     Tok::Use,
                                     Tok::Friend,
                                     Tok::Const,
                                     Tok::Fun,
-                                    Tok::Macro,
                                     Tok::Struct
                                 ),
                             ))

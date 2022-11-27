@@ -274,7 +274,6 @@ fn script(context: &mut Context, tscript: T::Script) -> H::Script {
 //**************************************************************************************************
 
 fn function(context: &mut Context, _name: FunctionName, f: T::Function) -> H::Function {
-    assert!(!f.is_macro, "ICE unexpected macro definition");
     assert!(context.has_empty_locals());
     assert!(context.tmp_counter == 0);
     let T::Function {
@@ -477,7 +476,7 @@ fn base_type(context: &Context, sp!(loc, nb_): N::Type) -> H::BaseType {
         NT::Param(tp) => HB::Param(tp),
         NT::UnresolvedError => HB::UnresolvedError,
         NT::Anything => HB::Unreachable,
-        NT::Ref(_, _) | NT::Unit => {
+        NT::Ref(_, _) | NT::Unit | NT::Fun(_, _) => {
             panic!(
                 "ICE type constraints failed {}:{}-{}",
                 loc.file_hash(),
@@ -1211,7 +1210,6 @@ fn exp_impl(
             };
             HE::ModuleCall(Box::new(call))
         }
-        TE::VarCall(..) => panic!("ICE unexpected local call"),
         TE::Builtin(bf, targ) => builtin(context, result, eloc, *bf, targ),
         TE::Vector(vec_loc, n, tty, targ) => {
             let ty = Box::new(base_type(context, *tty));
@@ -1719,7 +1717,7 @@ fn freeze_single(sp!(sloc, s): H::SingleType) -> H::SingleType {
 fn bind_for_short_circuit(e: &T::Exp) -> bool {
     use T::UnannotatedExp_ as TE;
     match &e.exp.value {
-        TE::Use(_) | TE::VarCall(..) => panic!("ICE should have been expanded"),
+        TE::Use(_) => panic!("ICE should have been expanded"),
         TE::Value(_)
         | TE::Constant(_, _)
         | TE::Move { .. }
