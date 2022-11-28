@@ -227,6 +227,7 @@ fn exp(context: &mut Context, e: &T::Exp) {
         | E::Break
         | E::Continue
         | E::Spec(_, _)
+        | E::Lambda
         | E::UnresolvedError => (),
 
         E::ModuleCall(call) => {
@@ -244,7 +245,6 @@ fn exp(context: &mut Context, e: &T::Exp) {
         }
         E::Loop { body: eloop, .. } => exp(context, eloop),
         E::Block(seq) => sequence(context, seq),
-        E::Lambda(_, body) => exp(context, body),
         E::Assign(_, _, er) => exp(context, er),
 
         E::Builtin(_, er)

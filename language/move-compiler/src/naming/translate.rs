@@ -800,10 +800,12 @@ fn type_parameter(
 ) -> N::TParam {
     let id = N::TParamID::next();
     let user_specified_name = name;
+    let is_macro_param = P::Var::is_macro_identifier_name(&user_specified_name);
     let tp = N::TParam {
         id,
         user_specified_name,
         abilities,
+        is_macro_param,
     };
     let loc = name.loc;
     context.bind_type(name.value, ResolvedType::TParam(loc, tp.clone()));

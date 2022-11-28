@@ -140,10 +140,12 @@ fn function(
         body: n_body,
         acquires,
     } = f;
+    if macro_.is_some() {
+        return None;
+    }
     assert!(context.constraints.is_empty());
     context.reset_for_module_item();
     context.current_function = Some(name);
-    context.in_macro_function = macro_.is_some();
     function_signature(context, &signature);
     if is_script {
         let mk_msg = || {
@@ -165,21 +167,14 @@ fn function(
     expand::function_signature(context, &mut signature);
     let body = function_body(context, &acquires, n_body);
     context.current_function = None;
-    context.in_macro_function = false;
-    // macros will be re-type checked once inlined, so discard the function definition
-    // we only type check them local to sanity check them for an improved developer experience
-    if macro_.is_none() {
-        Some(T::Function {
-            attributes,
-            visibility,
-            entry,
-            signature,
-            acquires,
-            body,
-        })
-    } else {
-        None
-    }
+    Some(T::Function {
+        attributes,
+        visibility,
+        entry,
+        signature,
+        acquires,
+        body,
+    })
 }
 
 fn function_signature(context: &mut Context, sig: &N::FunctionSignature) {
@@ -404,10 +399,7 @@ mod check_valid_constant {
                 s = format!("'{}' is", b);
                 &s
             }
-            E::Lambda(_, args) => {
-                exp(context, args);
-                "lambda expressions are"
-            }
+            E::Lambda => "lambda expressions are",
             E::IfElse(eb, et, ef) => {
                 exp(context, eb);
                 exp(context, et);
@@ -993,25 +985,12 @@ fn lambda(
         .iter()
         .map(|sp!(aloc, _)| core::make_tvar(context, *aloc))
         .collect();
-    let arg_ty_annot = match args.value.len() {
-        0 => sp(loc, Type_::Unit),
-        1 => sp(loc, arg_tys[0].value.clone()),
-        _ => Type_::multiple(loc, arg_tys.clone()),
-    };
-    let args = bind_list(context, args, Some(arg_ty_annot));
     let ret_ty = core::make_tvar(context, body.loc);
-    // TODO the body should really be type checked after the call is checked
-    // this will be more important once there are receiver/method calls
-    let body = exp_(context, body);
-    join(
-        context,
-        loc,
-        || "ICE jointing with tvar should not fail",
-        ret_ty.clone(),
-        body.ty.clone(),
-    );
-    let ty = sp(loc, N::Type_::Fun(arg_tys, Box::new(ret_ty)));
-    (ty, T::UnannotatedExp_::Lambda(args, Box::new(body)))
+    let ty = sp(loc, Type_::Fun(arg_tys, Box::new(ret_ty)));
+    // TODO typecheck the body for sanity
+    // we will re check everything after macro expansion however, so
+    // not critical
+    (ty, T::UnannotatedExp_::Lambda)
 }
 
 fn sequence(context: &mut Context, seq: N::Sequence) -> T::Sequence {

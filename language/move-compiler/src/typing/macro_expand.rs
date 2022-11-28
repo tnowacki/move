@@ -46,7 +46,7 @@ pub(crate) fn call(
         Some(tys) => tys,
         None => macro_type_params
             .iter()
-            .map(|_| sp(call_loc, N::Type_::Anything))
+            .map(|_| core::make_tvar(context, call_loc))
             .collect(),
     };
     if macro_type_params.len() != type_args.len() || macro_params.len() != args.len() {
@@ -394,7 +394,10 @@ fn exp(context: &mut Context, sp!(_, e_): &mut N::Exp) {
                 exp(context, e)
             }
         }
-        N::Exp_::Builtin(_, sp!(_, es)) => exps(context, es),
+        N::Exp_::Builtin(bf, sp!(_, es)) => {
+            builtin(context, bf);
+            exps(context, es)
+        }
         N::Exp_::Vector(_, ty_opt, sp!(_, es)) => {
             if let Some(ty) = ty_opt {
                 type_(context, ty)
@@ -437,6 +440,21 @@ fn exp(context: &mut Context, sp!(_, e_): &mut N::Exp) {
             *e_ = N::Exp_::Block(result);
         }
         N::Exp_::VarCall(_, sp!(_, es)) => exps(context, es),
+    }
+}
+
+fn builtin(context: &mut Context, sp!(_, bf_): &mut N::BuiltinFunction) {
+    match bf_ {
+        N::BuiltinFunction_::MoveTo(ty_opt)
+        | N::BuiltinFunction_::MoveFrom(ty_opt)
+        | N::BuiltinFunction_::BorrowGlobal(_, ty_opt)
+        | N::BuiltinFunction_::Exists(ty_opt)
+        | N::BuiltinFunction_::Freeze(ty_opt) => {
+            if let Some(ty) = ty_opt {
+                type_(context, ty)
+            }
+        }
+        N::BuiltinFunction_::Assert(_) => (),
     }
 }
 

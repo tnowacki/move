@@ -95,6 +95,7 @@ fn exp(
         | E::Break
         | E::Continue
         | E::Spec(_, _)
+        | E::Lambda
         | E::UnresolvedError => (),
 
         E::ModuleCall(call) if is_current_function(context, call) => {
@@ -128,7 +129,6 @@ fn exp(
         }
         E::Loop { body: eloop, .. } => exp(context, annotated_acquires, seen, eloop),
         E::Block(seq) => sequence(context, annotated_acquires, seen, seq),
-        E::Lambda(_, body) => exp(context, annotated_acquires, seen, body.as_ref()),
         E::Assign(_, _, er) => {
             exp(context, annotated_acquires, seen, er);
         }

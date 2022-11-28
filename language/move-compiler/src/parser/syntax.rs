@@ -1827,11 +1827,14 @@ fn parse_ability(context: &mut Context) -> Result<Ability, Box<Diagnostic>> {
 
 // Parse a type parameter:
 //      TypeParameter =
-//          <Identifier> <Constraint>?
+//          (<Identifier> | <MacroIdentifier>) <Constraint>?
 //      Constraint =
 //          ":" <Ability> (+ <Ability>)*
 fn parse_type_parameter(context: &mut Context) -> Result<(Name, Vec<Ability>), Box<Diagnostic>> {
-    let n = parse_identifier(context)?;
+    let n = match context.tokens.peek() {
+        Tok::MacroIdentifier => parse_macro_identifier(context)?,
+        _ => parse_identifier(context)?,
+    };
 
     let ability_constraints = if match_token(context.tokens, Tok::Colon)? {
         parse_list(

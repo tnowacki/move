@@ -6,8 +6,8 @@ use crate::{
     diag,
     diagnostics::Diagnostic,
     expansion::{
-        aliases::{AliasMap, AliasSet},
-        ast::{self as E, Address, Fields, ModuleIdent, ModuleIdent_, SpecId},
+        aliases::{AliasMap, AliasMapBuilder, AliasSet, OldAliasMap},
+        ast::{self as E, AbilitySet, Address, Fields, ModuleIdent, ModuleIdent_, SpecId},
         byte_string, hex_string,
     },
     parser::ast::{
@@ -23,8 +23,6 @@ use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
     iter::IntoIterator,
 };
-
-use super::aliases::{AliasMapBuilder, OldAliasMap};
 
 //**************************************************************************************************
 // Context
@@ -1254,7 +1252,7 @@ fn function_signature(
         parameters: pparams,
         return_type: pret_ty,
     } = psignature;
-    let type_parameters = type_parameters(context, pty_params);
+    let type_parameters = type_parameters(context, macro_loc_opt, pty_params);
     let old_aliases = context
         .aliases
         .shadow_for_type_parameters(type_parameters.iter().map(|(name, _)| name));
@@ -1395,7 +1393,9 @@ fn spec_target(context: &mut Context, sp!(loc, pt): P::SpecBlockTarget) -> E::Sp
     let et = match pt {
         PT::Code => ET::Code,
         PT::Module => ET::Module,
-        PT::Schema(name, type_params) => ET::Schema(name, type_parameters(context, type_params)),
+        PT::Schema(name, type_params) => {
+            ET::Schema(name, type_parameters(context, None, type_params))
+        }
         PT::Member(name, signature_opt) => ET::Member(
             name,
             signature_opt.map(|s| {
@@ -1424,7 +1424,7 @@ fn spec_condition_kind(
         P::SpecConditionKind_::Ensures => (E::SpecConditionKind_::Ensures, None),
         P::SpecConditionKind_::Requires => (E::SpecConditionKind_::Requires, None),
         P::SpecConditionKind_::Invariant(pty_params) => {
-            let ety_params = type_parameters(context, pty_params);
+            let ety_params = type_parameters(context, None, pty_params);
             let old_aliases = context
                 .aliases
                 .shadow_for_type_parameters(ety_params.iter().map(|(name, _)| name));
@@ -1434,7 +1434,7 @@ fn spec_condition_kind(
             )
         }
         P::SpecConditionKind_::InvariantUpdate(pty_params) => {
-            let ety_params = type_parameters(context, pty_params);
+            let ety_params = type_parameters(context, None, pty_params);
             let old_aliases = context
                 .aliases
                 .shadow_for_type_parameters(ety_params.iter().map(|(name, _)| name));
@@ -1444,7 +1444,7 @@ fn spec_condition_kind(
             )
         }
         P::SpecConditionKind_::Axiom(pty_params) => {
-            let ety_params = type_parameters(context, pty_params);
+            let ety_params = type_parameters(context, None, pty_params);
             let old_aliases = context
                 .aliases
                 .shadow_for_type_parameters(ety_params.iter().map(|(name, _)| name));
@@ -1508,7 +1508,7 @@ fn spec_member(context: &mut Context, sp!(loc, pm): P::SpecBlockMember) -> E::Sp
             type_: t,
             init,
         } => {
-            let type_parameters = type_parameters(context, pty_params);
+            let type_parameters = type_parameters(context, None, pty_params);
             let old_aliases = context
                 .aliases
                 .shadow_for_type_parameters(type_parameters.iter().map(|(name, _)| name));
@@ -1615,13 +1615,13 @@ fn ability_set(context: &mut Context, case: &str, abilities_vec: Vec<Ability>) -
 
 fn type_parameters(
     context: &mut Context,
+    macro_loc_opt: Option<Loc>,
     pty_params: Vec<(Name, Vec<Ability>)>,
 ) -> Vec<(Name, E::AbilitySet)> {
     pty_params
         .into_iter()
         .map(|(name, constraints_vec)| {
-            let constraints = ability_set(context, "constraint", constraints_vec);
-            (name, constraints)
+            type_parameter(context, macro_loc_opt, name, constraints_vec)
         })
         .collect()
 }
@@ -1632,12 +1632,41 @@ fn struct_type_parameters(
 ) -> Vec<E::StructTypeParameter> {
     pty_params
         .into_iter()
-        .map(|param| E::StructTypeParameter {
-            is_phantom: param.is_phantom,
-            name: param.name,
-            constraints: ability_set(context, "constraint", param.constraints),
+        .map(|param| {
+            let P::StructTypeParameter {
+                is_phantom,
+                name,
+                constraints: constraints_vec,
+            } = param;
+            let (name, constraints) = type_parameter(context, None, name, constraints_vec);
+            E::StructTypeParameter {
+                is_phantom,
+                name,
+                constraints,
+            }
         })
         .collect()
+}
+
+fn type_parameter(
+    context: &mut Context,
+    macro_loc_opt: Option<Loc>,
+    name: Name,
+    constraints_vec: Vec<Ability>,
+) -> (Name, AbilitySet) {
+    let constraints = ability_set(context, "constraint", constraints_vec);
+    if macro_loc_opt.is_none() && Var::is_macro_identifier_name(&name) {
+        let msg = "Invalid macro type parameter usage";
+        let mut diag = diag!(Declarations::InvalidName, (name.loc, msg),);
+        diag.add_note(format!(
+            "Type parameters starting with '{}' can be instantiated with any type \
+            (including reference and tuple types). They can be used only with macro \
+            functions",
+            Var::MACRO_IDENT_START
+        ));
+        context.env.add_diag(diag);
+    }
+    (name, constraints)
 }
 
 fn type_(context: &mut Context, sp!(loc, pt_): P::Type) -> E::Type {

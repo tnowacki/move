@@ -1376,7 +1376,7 @@ fn exp_impl(
                 .collect();
             HE::Spec(u, used_locals)
         }
-        TE::Lambda(..) => panic!("ICE unexpected lambda"),
+        TE::Lambda => panic!("ICE unexpected lambda"),
         TE::UnresolvedError => {
             assert!(context.env.has_errors());
             HE::UnresolvedError
@@ -1753,7 +1753,7 @@ fn bind_for_short_circuit(e: &T::Exp) -> bool {
         | TE::BorrowLocal(_, _)
         | TE::ExpList(_)
         | TE::Cast(_, _)
-        | TE::Lambda(..) => panic!("ICE unexpected exp in short circuit check: {:?}", e),
+        | TE::Lambda => panic!("ICE unexpected exp in short circuit check: {:?}", e),
     }
 }
 

@@ -5,8 +5,9 @@ module 0x42::m {
 macro public fun for(start: u64, stop: u64, $body: |u64|) {
     let i = start;
     while (i < stop) {
-        $body(i);
-        i = i + 1
+        let cur = i;
+        i = i + 1;
+        $body(cur);
     }
 }
 
@@ -14,8 +15,9 @@ macro public fun for_each<T>(v: &vector<T>, $body: |&T|) {
     let i = 0;
     let n = std::vector::length(v);
     while (i < n) {
-        $body(std::vector::borrow(v, i));
-        i = i + 1
+        let cur = i;
+        i = i + 1;
+        $body(std::vector::borrow(v, cur));
     }
 }
 

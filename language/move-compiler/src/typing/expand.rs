@@ -82,13 +82,11 @@ pub fn type_(context: &mut Context, ty: &mut Type) {
             }
         }
         Fun(args, result) => {
-            if !context.in_macro_function {
-                let msg =
-                    "Unexpected lambda type. Lambdas can only be used as macro function parameters";
-                context
-                    .env
-                    .add_diag(diag!(TypeSafety::UnexpectedFunctionType, (ty.loc, msg)));
-            }
+            let msg =
+                "Unexpected lambda type. Lambdas can only be used as macro function parameters";
+            context
+                .env
+                .add_diag(diag!(TypeSafety::UnexpectedFunctionType, (ty.loc, msg)));
             types(context, args);
             type_(context, result);
         }
@@ -261,13 +259,11 @@ pub fn exp(context: &mut Context, e: &mut T::Exp) {
         }
         E::Loop { body: eloop, .. } => exp(context, eloop),
         E::Block(seq) => sequence(context, seq),
-        E::Lambda(args, body) => {
+        E::Lambda => {
             let msg = "Lambdas can only be used directly as to macro functions";
             context
                 .env
                 .add_diag(diag!(TypeSafety::UnexpectedLambda, (e.exp.loc, msg)));
-            lvalues(context, args);
-            exp(context, body);
         }
         E::Assign(assigns, tys, er) => {
             lvalues(context, assigns);

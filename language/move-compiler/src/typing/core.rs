@@ -72,7 +72,6 @@ pub struct Context<'env> {
 
     pub current_module: Option<ModuleIdent>,
     pub current_function: Option<FunctionName>,
-    pub in_macro_function: bool,
     max_variable_color: u16,
     pub current_script_constants: Option<UniqueMap<ConstantName, ConstantInfo>>,
     pub return_type: Option<Type>,
@@ -138,7 +137,6 @@ impl<'env> Context<'env> {
             subst: Subst::empty(),
             current_module: None,
             current_function: None,
-            in_macro_function: false,
             max_variable_color: 0,
             current_script_constants: None,
             return_type: None,
@@ -160,7 +158,6 @@ impl<'env> Context<'env> {
         self.subst = Subst::empty();
         self.constraints = Constraints::new();
         self.current_function = None;
-        self.in_macro_function = false;
         self.max_variable_color = 0;
     }
 
@@ -598,7 +595,7 @@ pub fn make_struct_type(
             let constraints = sdef
                 .type_parameters
                 .iter()
-                .map(|tp| (loc, tp.param.abilities.clone()))
+                .map(|tp| (loc, (tp.param.is_macro_param, tp.param.abilities.clone())))
                 .collect();
             let ty_args = make_tparams(context, loc, TVarCase::Base, constraints);
             (sp(loc, Type_::Apply(None, tn, ty_args.clone())), ty_args)
@@ -620,7 +617,10 @@ pub fn make_expr_list_tvars(
     constraint_msg: impl Into<String>,
     locs: Vec<Loc>,
 ) -> Vec<Type> {
-    let constraints = locs.iter().map(|l| (*l, AbilitySet::empty())).collect();
+    let constraints = locs
+        .iter()
+        .map(|l| (*l, (true, AbilitySet::empty())))
+        .collect();
     let tys = make_tparams(
         context,
         loc,
@@ -767,9 +767,8 @@ pub fn make_function_type(
         .signature
         .type_parameters
         .iter()
-        .map(|tp| tp.abilities.clone())
+        .map(|tp| (tp.is_macro_param, tp.abilities.clone()))
         .collect();
-
     let ty_args = match ty_args_opt {
         None => {
             let locs_constraints = constraints.into_iter().map(|k| (loc, k)).collect();
@@ -1039,7 +1038,13 @@ fn solve_base_type_constraint(context: &mut Context, loc: Loc, msg: String, ty: 
     let sp!(tyloc, unfolded_) = unfold_type(&context.subst, ty.clone());
     match unfolded_ {
         Var(_) => unreachable!(),
-        Unit | Ref(_, _) | Apply(_, sp!(_, Multiple(_)), _) => {
+        Unit
+        | Ref(_, _)
+        | Apply(_, sp!(_, Multiple(_)), _)
+        | Param(TParam {
+            is_macro_param: true,
+            ..
+        }) => {
             let tystr = error_format(ty, &context.subst);
             let tmsg = format!("Expected a single non-reference type, but found: {}", tystr);
             context.env.add_diag(diag!(
@@ -1058,7 +1063,12 @@ fn solve_single_type_constraint(context: &mut Context, loc: Loc, msg: String, ty
     let sp!(tyloc, unfolded_) = unfold_type(&context.subst, ty.clone());
     match unfolded_ {
         Var(_) => unreachable!(),
-        Unit | Apply(_, sp!(_, Multiple(_)), _) => {
+        Unit
+        | Apply(_, sp!(_, Multiple(_)), _)
+        | Param(TParam {
+            is_macro_param: true,
+            ..
+        }) => {
             let tmsg = format!(
                 "Expected a single type, but found: {}",
                 error_format(ty, &context.subst)
@@ -1198,8 +1208,9 @@ pub fn instantiate(context: &mut Context, sp!(loc, t_): Type) -> Type {
             args.into_iter().map(|t| instantiate(context, t)).collect(),
             Box::new(instantiate(context, *result)),
         ),
-        x @ Param(_) => x,
-        Var(_) => panic!("ICE instantiate type variable"),
+        x @ Param(_) |
+        // var case can happen from macro expansion
+        x @ Var(_) => x
     };
     sp(loc, it_)
 }
@@ -1212,16 +1223,23 @@ fn instantiate_apply(
     n: TypeName,
     ty_args: Vec<Type>,
 ) -> Type_ {
-    let tparam_constraints: Vec<AbilitySet> = match &n {
-        sp!(nloc, N::TypeName_::Builtin(b)) => b.value.tparam_constraints(*nloc),
+    let tparam_constraints: Vec<(bool, AbilitySet)> = match &n {
+        sp!(nloc, N::TypeName_::Builtin(b)) => b
+            .value
+            .tparam_constraints(*nloc)
+            .into_iter()
+            .map(|abs| (true, abs))
+            .collect(),
         sp!(_, N::TypeName_::Multiple(len)) => {
             debug_assert!(abilities_opt.is_none(), "ICE instantiated expanded type");
-            (0..*len).map(|_| AbilitySet::empty()).collect()
+            (0..*len).map(|_| (true, AbilitySet::empty())).collect()
         }
         sp!(_, N::TypeName_::ModuleType(m, s)) => {
             debug_assert!(abilities_opt.is_none(), "ICE instantiated expanded type");
             let tps = context.struct_tparams(m, s);
-            tps.iter().map(|tp| tp.param.abilities.clone()).collect()
+            tps.iter()
+                .map(|tp| (tp.param.is_macro_param, tp.param.abilities.clone()))
+                .collect()
         }
     };
 
@@ -1239,13 +1257,14 @@ fn instantiate_type_args(
     loc: Loc,
     n: Option<&TypeName_>,
     mut ty_args: Vec<Type>,
-    constraints: Vec<AbilitySet>,
+    constraints: Vec<(/* apply kind constraint */ bool, AbilitySet)>,
 ) -> Vec<Type> {
     assert!(ty_args.len() == constraints.len());
+    // n.is_some() ==> apply_kind_constraints
     let locs_constraints = constraints
         .into_iter()
         .zip(&ty_args)
-        .map(|(abilities, t)| (t.loc, abilities))
+        .map(|(constraint, t)| (t.loc, constraint))
         .collect();
     let tvar_case = match n {
         Some(TypeName_::Multiple(_)) => {
@@ -1279,7 +1298,7 @@ fn check_type_argument_arity<F: FnOnce() -> String>(
     loc: Loc,
     name_f: F,
     mut ty_args: Vec<Type>,
-    tparam_constraints: &[AbilitySet],
+    tparam_constraints: &[(bool, AbilitySet)],
 ) -> Vec<Type> {
     let args_len = ty_args.len();
     let arity = tparam_constraints.len();
@@ -1318,19 +1337,23 @@ fn make_tparams(
     context: &mut Context,
     loc: Loc,
     case: TVarCase,
-    tparam_constraints: Vec<(Loc, AbilitySet)>,
+    tparam_constraints: Vec<(Loc, (/* apply kind constraint */ bool, AbilitySet))>,
 ) -> Vec<Type> {
     tparam_constraints
         .into_iter()
-        .map(|(vloc, constraint)| {
+        .map(|(vloc, (apply_kind_constraint, constraint))| {
             let tvar = make_tvar(context, vloc);
             context.add_ability_set_constraint(loc, None::<String>, tvar.clone(), constraint);
-            match &case {
-                TVarCase::Single(msg) => context.add_single_type_constraint(loc, msg, tvar.clone()),
-                TVarCase::Base => {
-                    context.add_base_type_constraint(loc, "Invalid type argument", tvar.clone())
+            if apply_kind_constraint {
+                match &case {
+                    TVarCase::Single(msg) => {
+                        context.add_single_type_constraint(loc, msg, tvar.clone())
+                    }
+                    TVarCase::Base => {
+                        context.add_base_type_constraint(loc, "Invalid type argument", tvar.clone())
+                    }
                 }
-            };
+            }
             tvar
         })
         .collect()

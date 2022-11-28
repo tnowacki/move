@@ -157,7 +157,7 @@ pub enum UnannotatedExp_ {
     While(Box<Exp>, Box<Exp>),
     Loop { has_break: bool, body: Box<Exp> },
     Block(Sequence),
-    Lambda(LValueList, Box<Exp>),
+    Lambda, // Body is not currently type checked before expansion
     Assign(LValueList, Vec<Option<Type>>, Box<Exp>),
     Mutate(Box<Exp>, Box<Exp>),
     Return(Box<Exp>),
@@ -519,11 +519,8 @@ impl AstDebug for UnannotatedExp_ {
                 body.ast_debug(w);
             }
             E::Block(seq) => w.block(|w| seq.ast_debug(w)),
-            E::Lambda(sp!(_, bs), e) => {
-                w.write("|");
-                bs.ast_debug(w);
-                w.write("|");
-                e.ast_debug(w);
+            E::Lambda => {
+                w.write("|..|..");
             }
             E::ExpList(es) => {
                 w.write("(");

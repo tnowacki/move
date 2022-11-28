@@ -174,6 +174,7 @@ pub struct TParam {
     pub id: TParamID,
     pub user_specified_name: Name,
     pub abilities: AbilitySet,
+    pub is_macro_param: bool,
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
@@ -874,8 +875,10 @@ impl AstDebug for TParam {
             id,
             user_specified_name,
             abilities,
+            is_macro_param,
         } = self;
-        w.write(&format!("{}#{}", user_specified_name, id.0));
+        let macro_prefix = if *is_macro_param { "macro" } else { "" };
+        w.write(&format!("{}{}#{}", macro_prefix, user_specified_name, id.0));
         ability_constraints_ast_debug(w, abilities);
     }
 }
