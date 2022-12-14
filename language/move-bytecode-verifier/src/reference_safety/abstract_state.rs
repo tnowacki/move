@@ -321,15 +321,14 @@ impl AbstractState {
     ) -> PartialVMResult<()> {
         let old_value = self.locals.insert(local, new_value);
         match old_value {
-            None => Ok(()),
             Some(AbstractValue::Reference(id)) => {
                 self.release(id);
                 Ok(())
             }
-            Some(AbstractValue::NonReference) if self.is_local_borrowed(local) => {
+            None | Some(AbstractValue::NonReference) if self.is_local_borrowed(local) => {
                 Err(self.error(StatusCode::STLOC_UNSAFE_TO_DESTROY_ERROR, offset))
             }
-            Some(AbstractValue::NonReference) => Ok(()),
+            None | Some(AbstractValue::NonReference) => Ok(()),
         }
     }
 
